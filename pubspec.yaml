@@ -1,0 +1,40 @@
+name: banana_player
+description: "A exoplayer wrapper library for your flutter projects"
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ^3.13.7
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  web: ^1.0.0
+  plugin_platform_interface: ^2.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  pigeon: ^29.1.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.cavernlabs.banana.player.banana_player
+        pluginClass: BananaPlayerPlugin
+      ios:
+        pluginClass: BananaPlayerPlugin
+      linux:
+        pluginClass: BananaPlayerPlugin
+      macos:
+        pluginClass: BananaPlayerPlugin
+      windows:
+        pluginClass: BananaPlayerPluginCApi
+      web:
+        pluginClass: BananaPlayerWeb
+        fileName: banana_player_web.dart
