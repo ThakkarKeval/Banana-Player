@@ -297,6 +297,27 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   builder: (context, _) => _buildLiveBadge(_controller.playbackState),
                 ),
               ),
+              // Slim glowing progress indicator at stage bottom
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    final dur = _controller.duration.inMilliseconds;
+                    final pos = _controller.position.inMilliseconds;
+                    if (dur <= 0) return const SizedBox.shrink();
+                    final fraction = (pos / dur).clamp(0.0, 1.0);
+                    return LinearProgressIndicator(
+                      value: fraction,
+                      minHeight: 3,
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      valueColor: const AlwaysStoppedAnimation(AmaizeTheme.nachoYellow),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -389,65 +410,118 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Replay to 0s
-          _buildCircleAction(
-            icon: Icons.replay_rounded,
-            tooltip: 'Replay (0s)',
-            onPressed: isInitialized ? () => _controller.seekTo(Duration.zero) : null,
-          ),
-
-          // Main Play / Pause Button with Cheese Yellow Gradient
-          GestureDetector(
-            onTap: isInitialized
-                ? () {
-                    if (isPlaying) {
-                      _controller.pause();
-                    } else {
-                      // Automatically restarts if video has ended
-                      _controller.play();
-                    }
-                  }
-                : null,
-            child: Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: isEnded
-                      ? [AmaizeTheme.chilliRed, AmaizeTheme.cheeseAmber]
-                      : [AmaizeTheme.brightYellow, AmaizeTheme.nachoYellow],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isEnded ? AmaizeTheme.chilliRed : AmaizeTheme.nachoYellow)
-                        .withValues(alpha: 0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(
-                isEnded
-                    ? Icons.replay_rounded
-                    : (isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                color: isEnded ? Colors.white : Colors.black,
-                size: 38,
-              ),
+          // Interactive Seek Bar with buffered preview & time labels
+          BananaSeekBar(
+            controller: _controller,
+            activeTrackColor: AmaizeTheme.nachoYellow,
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+            bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
+            thumbColor: AmaizeTheme.brightYellow,
+            thumbRadius: 7.0,
+            trackHeight: 4.0,
+            showTimeLabels: true,
+            timeTextStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
+          const SizedBox(height: 12),
 
-          // Mute / Unmute Toggle
-          _buildCircleAction(
-            icon: _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-            tooltip: _isMuted ? 'Unmute' : 'Mute',
-            color: _isMuted ? AmaizeTheme.chilliRed : null,
-            onPressed: isInitialized ? _toggleMute : null,
+          // Action controls row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Replay to 0s
+              _buildCircleAction(
+                icon: Icons.replay_rounded,
+                tooltip: 'Replay (0s)',
+                onPressed: isInitialized ? () => _controller.seekTo(Duration.zero) : null,
+              ),
+
+              // Step backward 10s
+              _buildCircleAction(
+                icon: Icons.replay_10_rounded,
+                tooltip: 'Rewind 10s',
+                onPressed: isInitialized
+                    ? () {
+                        final newPos = _controller.position - const Duration(seconds: 10);
+                        _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                      }
+                    : null,
+              ),
+
+              // Main Play / Pause Button with Cheese Yellow Gradient
+              GestureDetector(
+                onTap: isInitialized
+                    ? () {
+                        if (isPlaying) {
+                          _controller.pause();
+                        } else {
+                          // Automatically restarts if video has ended
+                          _controller.play();
+                        }
+                      }
+                    : null,
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: isEnded
+                          ? [AmaizeTheme.chilliRed, AmaizeTheme.cheeseAmber]
+                          : [AmaizeTheme.brightYellow, AmaizeTheme.nachoYellow],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isEnded ? AmaizeTheme.chilliRed : AmaizeTheme.nachoYellow)
+                            .withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isEnded
+                        ? Icons.replay_rounded
+                        : (isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                    color: isEnded ? Colors.white : Colors.black,
+                    size: 36,
+                  ),
+                ),
+              ),
+
+              // Step forward 10s
+              _buildCircleAction(
+                icon: Icons.forward_10_rounded,
+                tooltip: 'Forward 10s',
+                onPressed: isInitialized
+                    ? () {
+                        final newPos = _controller.position + const Duration(seconds: 10);
+                        final maxDur = _controller.duration;
+                        if (maxDur > Duration.zero && newPos > maxDur) {
+                          _controller.seekTo(maxDur);
+                        } else {
+                          _controller.seekTo(newPos);
+                        }
+                      }
+                    : null,
+              ),
+
+              // Mute / Unmute Toggle
+              _buildCircleAction(
+                icon: _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                tooltip: _isMuted ? 'Unmute' : 'Mute',
+                color: _isMuted ? AmaizeTheme.chilliRed : null,
+                onPressed: isInitialized ? _toggleMute : null,
+              ),
+            ],
           ),
         ],
       ),

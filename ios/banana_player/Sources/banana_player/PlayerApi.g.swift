@@ -193,6 +193,7 @@ enum PlaybackState: Int, CaseIterable {
   case buffering = 1
   case ready = 2
   case ended = 3
+  case paused = 4
 }
 
 /// Generated class from Pigeon that represents data sent in messages.
@@ -295,6 +296,8 @@ protocol BananaPlayerHostApi {
   func setSource(textureId: Int64, url: String) throws
   func seekTo(textureId: Int64, positionMs: Int64) throws
   func setVolume(textureId: Int64, volume: Double) throws
+  func getDuration(textureId: Int64) throws -> Int64
+  func getPosition(textureId: Int64) throws -> Int64
   func dispose(textureId: Int64) throws
 }
 
@@ -399,6 +402,36 @@ class BananaPlayerHostApiSetup {
     } else {
       setVolumeChannel.setMessageHandler(nil)
     }
+    let getDurationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getDuration\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getDurationChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        do {
+          let result = try api.getDuration(textureId: textureIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getDurationChannel.setMessageHandler(nil)
+    }
+    let getPositionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getPosition\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getPositionChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        do {
+          let result = try api.getPosition(textureId: textureIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getPositionChannel.setMessageHandler(nil)
+    }
     let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       disposeChannel.setMessageHandler { message, reply in
@@ -420,7 +453,7 @@ class BananaPlayerHostApiSetup {
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol BananaPlayerFlutterApiProtocol {
   @MainActor func onPlaybackStateChanged(textureId textureIdArg: Int64, state stateArg: PlaybackState) async throws
-  @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64) async throws
+  @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64, durationMs durationMsArg: Int64, bufferedPositionMs bufferedPositionMsArg: Int64) async throws
   @MainActor func onError(textureId textureIdArg: Int64, errorCode errorCodeArg: String, errorMessage errorMessageArg: String) async throws
 }
 class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
@@ -453,11 +486,11 @@ class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
       }
     }
   }
-  @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64) async throws {
+  @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64, durationMs durationMsArg: Int64, bufferedPositionMs bufferedPositionMsArg: Int64) async throws {
     return try await withCheckedThrowingContinuation { continuation in
       let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onPositionChanged\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-      channel.sendMessage([textureIdArg, positionMsArg] as [Any?]) { response in
+      channel.sendMessage([textureIdArg, positionMsArg, durationMsArg, bufferedPositionMsArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

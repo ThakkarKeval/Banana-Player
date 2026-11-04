@@ -41,6 +41,10 @@ abstract class BananaPlayerHostApi {
 
   void setVolume(int textureId, double volume);
 
+  int getDuration(int textureId);
+
+  int getPosition(int textureId);
+
   void dispose(int textureId);
 }
 
@@ -49,7 +53,12 @@ abstract class BananaPlayerHostApi {
 abstract class BananaPlayerFlutterApi {
   void onPlaybackStateChanged(int textureId, PlaybackState state);
 
-  void onPositionChanged(int textureId, int positionMs);
+  void onPositionChanged(
+    int textureId,
+    int positionMs,
+    int durationMs,
+    int bufferedPositionMs,
+  );
 
   void onError(int textureId, String errorCode, String errorMessage);
 }

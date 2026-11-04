@@ -302,6 +302,8 @@ interface BananaPlayerHostApi {
   fun setSource(textureId: Long, url: String)
   fun seekTo(textureId: Long, positionMs: Long)
   fun setVolume(textureId: Long, volume: Double)
+  fun getDuration(textureId: Long): Long
+  fun getPosition(textureId: Long): Long
   fun dispose(textureId: Long)
 
   companion object {
@@ -424,6 +426,40 @@ interface BananaPlayerHostApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getDuration$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getDuration(textureIdArg))
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getPosition$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getPosition(textureIdArg))
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
@@ -471,13 +507,13 @@ class BananaPlayerFlutterApi(private val binaryMessenger: BinaryMessenger, priva
       }
     }
   }
-  suspend fun onPositionChanged(textureIdArg: Long, positionMsArg: Long)
+  suspend fun onPositionChanged(textureIdArg: Long, positionMsArg: Long, durationMsArg: Long, bufferedPositionMsArg: Long)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     return suspendCancellableCoroutine { continuation ->
       val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onPositionChanged$separatedMessageChannelSuffix"
       val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-      channel.send(listOf(textureIdArg, positionMsArg)) {
+      channel.send(listOf(textureIdArg, positionMsArg, durationMsArg, bufferedPositionMsArg)) {
         if (it is List<*>) {
           if (it.size > 1) {
             continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))

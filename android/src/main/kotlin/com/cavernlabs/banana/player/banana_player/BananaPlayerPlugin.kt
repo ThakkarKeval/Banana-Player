@@ -59,6 +59,14 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
         players[textureId]?.setVolume(volume.toFloat())
     }
 
+    override fun getDuration(textureId: Long): Long {
+        return players[textureId]?.getDuration() ?: 0L
+    }
+
+    override fun getPosition(textureId: Long): Long {
+        return players[textureId]?.getPosition() ?: 0L
+    }
+
     override fun dispose(textureId: Long) {
         players.remove(textureId)?.dispose()
     }

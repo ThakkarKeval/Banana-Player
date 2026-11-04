@@ -23,6 +23,8 @@ class BananaPlayerController extends ChangeNotifier {
   int? _textureId;
   PlaybackState _playbackState = PlaybackState.idle;
   Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  Duration _bufferedPosition = Duration.zero;
   String? _errorMessage;
   bool _isDisposed = false;
 
@@ -41,6 +43,15 @@ class BananaPlayerController extends ChangeNotifier {
   /// Last known playback position.
   Duration get position => _position;
 
+  /// Total duration of the media. Returns [Duration.zero] if unknown or live stream.
+  Duration get duration => _duration;
+
+  /// Last known buffered/cached position.
+  Duration get bufferedPosition => _bufferedPosition;
+
+  /// Whether the current media is a live stream or indeterminate duration.
+  bool get isLive => _duration == Duration.zero || _duration.isNegative;
+
   /// Last error message, if any.
   String? get errorMessage => _errorMessage;
 
@@ -54,6 +65,16 @@ class BananaPlayerController extends ChangeNotifier {
       StreamController<Duration>.broadcast();
   Stream<Duration> get onPositionChanged =>
       _positionStreamController.stream;
+
+  final StreamController<Duration> _durationStreamController =
+      StreamController<Duration>.broadcast();
+  Stream<Duration> get onDurationChanged =>
+      _durationStreamController.stream;
+
+  final StreamController<Duration> _bufferedStreamController =
+      StreamController<Duration>.broadcast();
+  Stream<Duration> get onBufferedPositionChanged =>
+      _bufferedStreamController.stream;
 
   final StreamController<String> _errorStreamController =
       StreamController<String>.broadcast();
@@ -78,6 +99,9 @@ class BananaPlayerController extends ChangeNotifier {
     }
 
     _errorMessage = null;
+    _position = Duration.zero;
+    _duration = Duration.zero;
+    _bufferedPosition = Duration.zero;
     final config = PlayerConfig(url: url, autoPlay: autoPlay, volume: volume);
     final textureId = await _hostApi.create(config);
 
@@ -94,6 +118,9 @@ class BananaPlayerController extends ChangeNotifier {
       throw StateError('Cannot set source on a disposed BananaPlayerController');
     }
     _errorMessage = null;
+    _position = Duration.zero;
+    _duration = Duration.zero;
+    _bufferedPosition = Duration.zero;
     _playbackState = PlaybackState.buffering;
     notifyListeners();
 
@@ -137,6 +164,30 @@ class BananaPlayerController extends ChangeNotifier {
     }
   }
 
+  /// Retrieves the current duration directly from the native player engine.
+  Future<Duration> getDuration() async {
+    if (isInitialized) {
+      final ms = await _hostApi.getDuration(_textureId!);
+      if (ms > 0) {
+        _duration = Duration(milliseconds: ms);
+        notifyListeners();
+      }
+    }
+    return _duration;
+  }
+
+  /// Retrieves the current playback position directly from the native player engine.
+  Future<Duration> getPosition() async {
+    if (isInitialized) {
+      final ms = await _hostApi.getPosition(_textureId!);
+      if (ms >= 0) {
+        _position = Duration(milliseconds: ms);
+        notifyListeners();
+      }
+    }
+    return _position;
+  }
+
   @override
   Future<void> dispose() async {
     if (_isDisposed) return;
@@ -150,6 +201,8 @@ class BananaPlayerController extends ChangeNotifier {
 
     await _stateStreamController.close();
     await _positionStreamController.close();
+    await _durationStreamController.close();
+    await _bufferedStreamController.close();
     await _errorStreamController.close();
 
     super.dispose();
@@ -157,14 +210,35 @@ class BananaPlayerController extends ChangeNotifier {
 
   void _handlePlaybackStateChanged(PlaybackState state) {
     _playbackState = state;
+    if (state == PlaybackState.ended && _duration > Duration.zero) {
+      _position = _duration;
+    }
     _stateStreamController.add(state);
     notifyListeners();
   }
 
-  void _handlePositionChanged(int positionMs) {
-    _position = Duration(milliseconds: positionMs);
+  void _handlePositionChanged(int positionMs, int durationMs, int bufferedPositionMs) {
+    final newPos = Duration(milliseconds: positionMs);
+    final newDur = Duration(milliseconds: durationMs);
+    final newBuf = Duration(milliseconds: bufferedPositionMs);
+
+    final bool changed = _position != newPos || _duration != newDur || _bufferedPosition != newBuf;
+
+    _position = newPos;
+    if (newDur > Duration.zero) {
+      _duration = newDur;
+    }
+    _bufferedPosition = newBuf;
+
     _positionStreamController.add(_position);
-    notifyListeners();
+    if (_duration > Duration.zero) {
+      _durationStreamController.add(_duration);
+    }
+    _bufferedStreamController.add(_bufferedPosition);
+
+    if (changed) {
+      notifyListeners();
+    }
   }
 
   void _handleError(String errorCode, String errorMessage) {
@@ -182,9 +256,9 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
   }
 
   @override
-  void onPositionChanged(int textureId, int positionMs) {
+  void onPositionChanged(int textureId, int positionMs, int durationMs, int bufferedPositionMs) {
     BananaPlayerController._activeControllers[textureId]
-        ?._handlePositionChanged(positionMs);
+        ?._handlePositionChanged(positionMs, durationMs, bufferedPositionMs);
   }
 
   @override

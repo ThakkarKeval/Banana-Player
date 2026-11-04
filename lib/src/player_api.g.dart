@@ -331,6 +331,44 @@ class BananaPlayerHostApi {
     ;
   }
 
+  Future<int> getDuration(int textureId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getDuration$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[textureId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as int;
+  }
+
+  Future<int> getPosition(int textureId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getPosition$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[textureId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as int;
+  }
+
   Future<void> dispose(int textureId) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -355,7 +393,7 @@ abstract class BananaPlayerFlutterApi {
 
   void onPlaybackStateChanged(int textureId, PlaybackState state);
 
-  void onPositionChanged(int textureId, int positionMs);
+  void onPositionChanged(int textureId, int positionMs, int durationMs, int bufferedPositionMs);
 
   void onError(int textureId, String errorCode, String errorMessage);
 
@@ -398,8 +436,10 @@ abstract class BananaPlayerFlutterApi {
           final List<Object?> args = message! as List<Object?>;
           final int arg_textureId = args[0]! as int;
           final int arg_positionMs = args[1]! as int;
+          final int arg_durationMs = args[2]! as int;
+          final int arg_bufferedPositionMs = args[3]! as int;
           try {
-            api.onPositionChanged(arg_textureId, arg_positionMs);
+            api.onPositionChanged(arg_textureId, arg_positionMs, arg_durationMs, arg_bufferedPositionMs);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
