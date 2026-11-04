@@ -91,6 +91,15 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   final BananaPlayerController _controller = BananaPlayerController();
   int _selectedPresetIndex = 0;
   bool _isMuted = false;
+  bool _useCustomWidgets = false;
+
+  String _formatDuration(Duration duration) {
+    if (duration < Duration.zero) return '0:00';
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final secondsStr = seconds.toString().padLeft(2, '0');
+    return '$minutes:$secondsStr';
+  }
 
   @override
   void initState() {
@@ -413,22 +422,141 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Interactive Seek Bar with buffered preview & time labels
-          BananaSeekBar(
-            controller: _controller,
-            activeTrackColor: AmaizeTheme.nachoYellow,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-            bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
-            thumbColor: AmaizeTheme.brightYellow,
-            thumbRadius: 7.0,
-            trackHeight: 4.0,
-            showTimeLabels: true,
-            timeTextStyle: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
+          // Header row with Seekbar Mode Toggle
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _useCustomWidgets ? 'CUSTOM WIDGETS' : 'DEFAULT SEEKBAR VIEW',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: Colors.white54,
+                ),
+              ),
+              InkWell(
+                onTap: () => setState(() => _useCustomWidgets = !_useCustomWidgets),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _useCustomWidgets
+                        ? AmaizeTheme.cheeseAmber.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _useCustomWidgets ? AmaizeTheme.cheeseAmber : Colors.white24,
+                    ),
+                  ),
+                  child: Text(
+                    _useCustomWidgets ? 'Show Default View' : 'Try Custom Direct Widgets',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: _useCustomWidgets ? AmaizeTheme.nachoYellow : Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
+
+          // Seek Bar (Default View or Custom Direct Widgets)
+          if (!_useCustomWidgets)
+            BananaSeekBar(
+              controller: _controller,
+              activeTrackColor: AmaizeTheme.nachoYellow,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+              bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
+              thumbColor: AmaizeTheme.brightYellow,
+              thumbRadius: 7.0,
+              trackHeight: 4.0,
+              showTimeLabels: true,
+              timeTextStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white70,
+              ),
+            )
+          else
+            BananaSeekBar(
+              controller: _controller,
+              activeTrackColor: AmaizeTheme.nachoYellow,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+              bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
+              trackHeight: 5.0,
+              // Direct custom thumb widget (flame icon with cheese amber border)
+              customThumb: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AmaizeTheme.brightYellow, AmaizeTheme.cheeseAmber],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AmaizeTheme.nachoYellow.withValues(alpha: 0.6),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 13,
+                  color: AmaizeTheme.chilliRed,
+                ),
+              ),
+              // Direct custom leading widget (Row with icon and format)
+              leading: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AmaizeTheme.cardSurfaceLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.hd_rounded, size: 14, color: AmaizeTheme.nachoYellow),
+              ),
+              // Direct custom trailing widget (Pill with remaining duration)
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AmaizeTheme.chilliRed.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AmaizeTheme.chilliRed.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  '-${_formatDuration(_controller.duration > _controller.position ? _controller.duration - _controller.position : Duration.zero)}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AmaizeTheme.nachoYellow,
+                  ),
+                ),
+              ),
+              // Direct custom scrub tooltip floating above thumb
+              scrubTooltipBuilder: (context, scrubPos) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AmaizeTheme.deepNavy,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AmaizeTheme.nachoYellow),
+                  ),
+                  child: Text(
+                    _formatDuration(scrubPos),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
           const SizedBox(height: 12),
 
           // Action controls row
