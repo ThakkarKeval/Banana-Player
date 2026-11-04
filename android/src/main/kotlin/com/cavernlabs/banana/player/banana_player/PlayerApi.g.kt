@@ -205,7 +205,8 @@ enum class PlaybackState(val raw: Int) {
   IDLE(0),
   BUFFERING(1),
   READY(2),
-  ENDED(3);
+  ENDED(3),
+  PAUSED(4);
 
   companion object {
     fun ofRaw(raw: Int): PlaybackState? {
@@ -298,6 +299,7 @@ interface BananaPlayerHostApi {
   fun create(config: PlayerConfig): Long
   fun play(textureId: Long)
   fun pause(textureId: Long)
+  fun setSource(textureId: Long, url: String)
   fun seekTo(textureId: Long, positionMs: Long)
   fun setVolume(textureId: Long, volume: Double)
   fun dispose(textureId: Long)
@@ -354,6 +356,25 @@ interface BananaPlayerHostApi {
             val textureIdArg = args[0] as Long
             val wrapped: List<Any?> = try {
               api.pause(textureIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setSource$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val urlArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              api.setSource(textureIdArg, urlArg)
               listOf(null)
             } catch (exception: Throwable) {
               PlayerApiPigeonUtils.wrapError(exception)

@@ -47,6 +47,10 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
         players[textureId]?.pause()
     }
 
+    override fun setSource(textureId: Long, url: String) {
+        players[textureId]?.setSource(url)
+    }
+
     override fun seekTo(textureId: Long, positionMs: Long) {
         players[textureId]?.seekTo(positionMs)
     }

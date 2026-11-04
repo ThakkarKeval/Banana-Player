@@ -22,7 +22,7 @@ class PlayerConfig {
   double volume;
 }
 
-enum PlaybackState { idle, buffering, ready, ended }
+enum PlaybackState { idle, buffering, ready, ended, paused }
 
 // 2. Class 1: Dart -> Native (HostApi)
 @HostApi()
@@ -34,6 +34,8 @@ abstract class BananaPlayerHostApi {
   void play(int textureId);
 
   void pause(int textureId);
+
+  void setSource(int textureId, String url);
 
   void seekTo(int textureId, int positionMs);
 

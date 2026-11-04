@@ -292,6 +292,7 @@ protocol BananaPlayerHostApi {
   func create(config: PlayerConfig) throws -> Int64
   func play(textureId: Int64) throws
   func pause(textureId: Int64) throws
+  func setSource(textureId: Int64, url: String) throws
   func seekTo(textureId: Int64, positionMs: Int64) throws
   func setVolume(textureId: Int64, volume: Double) throws
   func dispose(textureId: Int64) throws
@@ -349,6 +350,22 @@ class BananaPlayerHostApiSetup {
       }
     } else {
       pauseChannel.setMessageHandler(nil)
+    }
+    let setSourceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setSource\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setSourceChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        let urlArg = args[1] as! String
+        do {
+          try api.setSource(textureId: textureIdArg, url: urlArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setSourceChannel.setMessageHandler(nil)
     }
     let seekToChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.seekTo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
