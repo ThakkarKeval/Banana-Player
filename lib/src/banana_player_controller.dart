@@ -25,6 +25,7 @@ class BananaPlayerController extends ChangeNotifier {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   Duration _bufferedPosition = Duration.zero;
+  List<VideoQuality> _videoQualities = const [];
   String? _errorMessage;
   bool _isDisposed = false;
 
@@ -48,6 +49,17 @@ class BananaPlayerController extends ChangeNotifier {
 
   /// Last known buffered/cached position.
   Duration get bufferedPosition => _bufferedPosition;
+
+  /// Available video qualities for HLS/DASH multi-bitrate streams.
+  List<VideoQuality> get videoQualities => _videoQualities;
+
+  /// Currently selected video quality (including 'Auto' if active).
+  VideoQuality? get selectedQuality {
+    for (final q in _videoQualities) {
+      if (q.isSelected) return q;
+    }
+    return null;
+  }
 
   /// Whether the current media is a live stream or indeterminate duration.
   bool get isLive => _duration == Duration.zero || _duration.isNegative;
@@ -76,6 +88,11 @@ class BananaPlayerController extends ChangeNotifier {
   Stream<Duration> get onBufferedPositionChanged =>
       _bufferedStreamController.stream;
 
+  final StreamController<List<VideoQuality>> _qualitiesStreamController =
+      StreamController<List<VideoQuality>>.broadcast();
+  Stream<List<VideoQuality>> get onVideoQualitiesChanged =>
+      _qualitiesStreamController.stream;
+
   final StreamController<String> _errorStreamController =
       StreamController<String>.broadcast();
   Stream<String> get onError => _errorStreamController.stream;
@@ -102,6 +119,7 @@ class BananaPlayerController extends ChangeNotifier {
     _position = Duration.zero;
     _duration = Duration.zero;
     _bufferedPosition = Duration.zero;
+    _videoQualities = const [];
     final config = PlayerConfig(url: url, autoPlay: autoPlay, volume: volume);
     final textureId = await _hostApi.create(config);
 
@@ -121,6 +139,7 @@ class BananaPlayerController extends ChangeNotifier {
     _position = Duration.zero;
     _duration = Duration.zero;
     _bufferedPosition = Duration.zero;
+    _videoQualities = const [];
     _playbackState = PlaybackState.buffering;
     notifyListeners();
 
@@ -188,6 +207,26 @@ class BananaPlayerController extends ChangeNotifier {
     return _position;
   }
 
+  /// Fetches available video qualities for the current media (e.g. HLS/DASH multi-bitrate streams).
+  Future<List<VideoQuality>> getVideoQualities() async {
+    if (isInitialized) {
+      final qualities = await _hostApi.getVideoQualities(_textureId!);
+      _videoQualities = List<VideoQuality>.unmodifiable(qualities);
+      _qualitiesStreamController.add(_videoQualities);
+      notifyListeners();
+    }
+    return _videoQualities;
+  }
+
+  /// Sets the video playback quality.
+  /// Pass `"auto"` to restore adaptive bitrate streaming, or pass a specific [VideoQuality.id].
+  Future<void> setVideoQuality(String qualityId) async {
+    if (isInitialized) {
+      await _hostApi.setVideoQuality(_textureId!, qualityId);
+      await getVideoQualities();
+    }
+  }
+
   @override
   Future<void> dispose() async {
     if (_isDisposed) return;
@@ -203,6 +242,7 @@ class BananaPlayerController extends ChangeNotifier {
     await _positionStreamController.close();
     await _durationStreamController.close();
     await _bufferedStreamController.close();
+    await _qualitiesStreamController.close();
     await _errorStreamController.close();
 
     super.dispose();
@@ -241,6 +281,12 @@ class BananaPlayerController extends ChangeNotifier {
     }
   }
 
+  void _handleVideoQualitiesChanged(List<VideoQuality> qualities) {
+    _videoQualities = List<VideoQuality>.unmodifiable(qualities);
+    _qualitiesStreamController.add(_videoQualities);
+    notifyListeners();
+  }
+
   void _handleError(String errorCode, String errorMessage) {
     _errorMessage = '$errorCode: $errorMessage';
     _errorStreamController.add(_errorMessage!);
@@ -259,6 +305,12 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
   void onPositionChanged(int textureId, int positionMs, int durationMs, int bufferedPositionMs) {
     BananaPlayerController._activeControllers[textureId]
         ?._handlePositionChanged(positionMs, durationMs, bufferedPositionMs);
+  }
+
+  @override
+  void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities) {
+    BananaPlayerController._activeControllers[textureId]
+        ?._handleVideoQualitiesChanged(qualities);
   }
 
   @override

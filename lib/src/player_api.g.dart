@@ -170,6 +170,81 @@ class PlayerConfig {
   }
 }
 
+class VideoQuality {
+  VideoQuality({
+    required this.id,
+    required this.width,
+    required this.height,
+    required this.bitrate,
+    required this.isSelected,
+    this.label,
+    this.frameRate,
+  });
+
+  String id;
+
+  int width;
+
+  int height;
+
+  int bitrate;
+
+  bool isSelected;
+
+  String? label;
+
+  double? frameRate;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      width,
+      height,
+      bitrate,
+      isSelected,
+      label,
+      frameRate,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static VideoQuality decode(Object result) {
+    result as List<Object?>;
+    return VideoQuality(
+      id: result[0]! as String,
+      width: result[1]! as int,
+      height: result[2]! as int,
+      bitrate: result[3]! as int,
+      isSelected: result[4]! as bool,
+      label: result[5] as String?,
+      frameRate: result[6] as double?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! VideoQuality || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) && _deepEquals(width, other.width) && _deepEquals(height, other.height) && _deepEquals(bitrate, other.bitrate) && _deepEquals(isSelected, other.isSelected) && _deepEquals(label, other.label) && _deepEquals(frameRate, other.frameRate);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'VideoQuality(id: $id, width: $width, height: $height, bitrate: $bitrate, isSelected: $isSelected, label: $label, frameRate: $frameRate)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -184,6 +259,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PlayerConfig) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
+    }    else if (value is VideoQuality) {
+      buffer.putUint8(131);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -197,6 +275,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : PlaybackState.values[value];
       case 130:
         return PlayerConfig.decode(readValue(buffer)!);
+      case 131:
+        return VideoQuality.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -369,6 +449,43 @@ class BananaPlayerHostApi {
     return pigeonVar_replyValue! as int;
   }
 
+  Future<List<VideoQuality>> getVideoQualities(int textureId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getVideoQualities$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[textureId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<VideoQuality>();
+  }
+
+  Future<void> setVideoQuality(int textureId, String qualityId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setVideoQuality$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[textureId, qualityId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
   Future<void> dispose(int textureId) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -394,6 +511,8 @@ abstract class BananaPlayerFlutterApi {
   void onPlaybackStateChanged(int textureId, PlaybackState state);
 
   void onPositionChanged(int textureId, int positionMs, int durationMs, int bufferedPositionMs);
+
+  void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities);
 
   void onError(int textureId, String errorCode, String errorMessage);
 
@@ -440,6 +559,28 @@ abstract class BananaPlayerFlutterApi {
           final int arg_bufferedPositionMs = args[3]! as int;
           try {
             api.onPositionChanged(arg_textureId, arg_positionMs, arg_durationMs, arg_bufferedPositionMs);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onVideoQualitiesChanged$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_textureId = args[0]! as int;
+          final List<VideoQuality> arg_qualities = (args[1]! as List<Object?>).cast<VideoQuality>();
+          try {
+            api.onVideoQualitiesChanged(arg_textureId, arg_qualities);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

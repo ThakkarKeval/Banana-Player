@@ -259,6 +259,67 @@ data class PlayerConfig (
     return "PlayerConfig(url=$url, autoPlay=$autoPlay, volume=$volume)"
   }
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class VideoQuality (
+  val id: String,
+  val width: Long,
+  val height: Long,
+  val bitrate: Long,
+  val isSelected: Boolean,
+  val label: String? = null,
+  val frameRate: Double? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): VideoQuality {
+      val id = pigeonVar_list[0] as String
+      val width = pigeonVar_list[1] as Long
+      val height = pigeonVar_list[2] as Long
+      val bitrate = pigeonVar_list[3] as Long
+      val isSelected = pigeonVar_list[4] as Boolean
+      val label = pigeonVar_list[5] as String?
+      val frameRate = pigeonVar_list[6] as Double?
+      return VideoQuality(id, width, height, bitrate, isSelected, label, frameRate)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      width,
+      height,
+      bitrate,
+      isSelected,
+      label,
+      frameRate,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as VideoQuality
+    return PlayerApiPigeonUtils.deepEquals(this.id, other.id) && PlayerApiPigeonUtils.deepEquals(this.width, other.width) && PlayerApiPigeonUtils.deepEquals(this.height, other.height) && PlayerApiPigeonUtils.deepEquals(this.bitrate, other.bitrate) && PlayerApiPigeonUtils.deepEquals(this.isSelected, other.isSelected) && PlayerApiPigeonUtils.deepEquals(this.label, other.label) && PlayerApiPigeonUtils.deepEquals(this.frameRate, other.frameRate)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.id)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.width)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.height)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.bitrate)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.isSelected)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.label)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.frameRate)
+    return result
+  }
+  override fun toString(): String {
+    return "VideoQuality(id=$id, width=$width, height=$height, bitrate=$bitrate, isSelected=$isSelected, label=$label, frameRate=$frameRate)"
+  }
+}
 private open class PlayerApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -272,6 +333,11 @@ private open class PlayerApiPigeonCodec : StandardMessageCodec() {
           PlayerConfig.fromList(it)
         }
       }
+      131.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          VideoQuality.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -283,6 +349,10 @@ private open class PlayerApiPigeonCodec : StandardMessageCodec() {
       }
       is PlayerConfig -> {
         stream.write(130)
+        writeValue(stream, value.toList())
+      }
+      is VideoQuality -> {
+        stream.write(131)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -304,6 +374,8 @@ interface BananaPlayerHostApi {
   fun setVolume(textureId: Long, volume: Double)
   fun getDuration(textureId: Long): Long
   fun getPosition(textureId: Long): Long
+  fun getVideoQualities(textureId: Long): List<VideoQuality>
+  fun setVideoQuality(textureId: Long, qualityId: String)
   fun dispose(textureId: Long)
 
   companion object {
@@ -460,6 +532,42 @@ interface BananaPlayerHostApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getVideoQualities$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getVideoQualities(textureIdArg))
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setVideoQuality$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val qualityIdArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              api.setVideoQuality(textureIdArg, qualityIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
@@ -514,6 +622,25 @@ class BananaPlayerFlutterApi(private val binaryMessenger: BinaryMessenger, priva
       val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onPositionChanged$separatedMessageChannelSuffix"
       val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
       channel.send(listOf(textureIdArg, positionMsArg, durationMsArg, bufferedPositionMsArg)) {
+        if (it is List<*>) {
+          if (it.size > 1) {
+            continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))
+          } else {
+            continuation.resume(Unit)
+          }
+        } else {
+          continuation.resumeWithException(PlayerApiPigeonUtils.createConnectionError(channelName))
+        } 
+      }
+    }
+  }
+  suspend fun onVideoQualitiesChanged(textureIdArg: Long, qualitiesArg: List<VideoQuality>)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    return suspendCancellableCoroutine { continuation ->
+      val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onVideoQualitiesChanged$separatedMessageChannelSuffix"
+      val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+      channel.send(listOf(textureIdArg, qualitiesArg)) {
         if (it is List<*>) {
           if (it.size > 1) {
             continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))

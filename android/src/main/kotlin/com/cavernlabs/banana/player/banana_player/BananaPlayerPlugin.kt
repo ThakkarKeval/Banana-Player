@@ -67,6 +67,14 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
         return players[textureId]?.getPosition() ?: 0L
     }
 
+    override fun getVideoQualities(textureId: Long): List<VideoQuality> {
+        return players[textureId]?.getVideoQualities() ?: emptyList()
+    }
+
+    override fun setVideoQuality(textureId: Long, qualityId: String) {
+        players[textureId]?.setVideoQuality(qualityId)
+    }
+
     override fun dispose(textureId: Long) {
         players.remove(textureId)?.dispose()
     }

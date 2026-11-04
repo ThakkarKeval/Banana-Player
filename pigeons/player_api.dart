@@ -22,6 +22,26 @@ class PlayerConfig {
   double volume;
 }
 
+class VideoQuality {
+  VideoQuality({
+    required this.id,
+    required this.width,
+    required this.height,
+    required this.bitrate,
+    required this.isSelected,
+    this.label,
+    this.frameRate,
+  });
+
+  String id;
+  int width;
+  int height;
+  int bitrate;
+  bool isSelected;
+  String? label;
+  double? frameRate;
+}
+
 enum PlaybackState { idle, buffering, ready, ended, paused }
 
 // 2. Class 1: Dart -> Native (HostApi)
@@ -45,6 +65,10 @@ abstract class BananaPlayerHostApi {
 
   int getPosition(int textureId);
 
+  List<VideoQuality> getVideoQualities(int textureId);
+
+  void setVideoQuality(int textureId, String qualityId);
+
   void dispose(int textureId);
 }
 
@@ -59,6 +83,8 @@ abstract class BananaPlayerFlutterApi {
     int durationMs,
     int bufferedPositionMs,
   );
+
+  void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities);
 
   void onError(int textureId, String errorCode, String errorMessage);
 }

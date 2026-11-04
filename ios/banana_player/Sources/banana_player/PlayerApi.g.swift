@@ -241,6 +241,71 @@ struct PlayerConfig: Hashable, CustomStringConvertible {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct VideoQuality: Hashable, CustomStringConvertible {
+  var id: String
+  var width: Int64
+  var height: Int64
+  var bitrate: Int64
+  var isSelected: Bool
+  var label: String? = nil
+  var frameRate: Double? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> VideoQuality? {
+    let id = pigeonVar_list[0] as! String
+    let width = pigeonVar_list[1] as! Int64
+    let height = pigeonVar_list[2] as! Int64
+    let bitrate = pigeonVar_list[3] as! Int64
+    let isSelected = pigeonVar_list[4] as! Bool
+    let label: String? = nilOrValue(pigeonVar_list[5])
+    let frameRate: Double? = nilOrValue(pigeonVar_list[6])
+
+    return VideoQuality(
+      id: id,
+      width: width,
+      height: height,
+      bitrate: bitrate,
+      isSelected: isSelected,
+      label: label,
+      frameRate: frameRate
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      width,
+      height,
+      bitrate,
+      isSelected,
+      label,
+      frameRate,
+    ]
+  }
+  static func == (lhs: VideoQuality, rhs: VideoQuality) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PlayerApiPigeonInternal.deepEquals(lhs.id, rhs.id) && PlayerApiPigeonInternal.deepEquals(lhs.width, rhs.width) && PlayerApiPigeonInternal.deepEquals(lhs.height, rhs.height) && PlayerApiPigeonInternal.deepEquals(lhs.bitrate, rhs.bitrate) && PlayerApiPigeonInternal.deepEquals(lhs.isSelected, rhs.isSelected) && PlayerApiPigeonInternal.deepEquals(lhs.label, rhs.label) && PlayerApiPigeonInternal.deepEquals(lhs.frameRate, rhs.frameRate)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("VideoQuality")
+    PlayerApiPigeonInternal.deepHash(value: id, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: width, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: height, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: bitrate, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: isSelected, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: label, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: frameRate, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "VideoQuality(id: \(String(describing: id)), width: \(String(describing: width)), height: \(String(describing: height)), bitrate: \(String(describing: bitrate)), isSelected: \(String(describing: isSelected)), label: \(String(describing: label)), frameRate: \(String(describing: frameRate)))"
+  }
+}
+
 private class PlayerApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -252,6 +317,8 @@ private class PlayerApiPigeonCodecReader: FlutterStandardReader {
       return nil
     case 130:
       return PlayerConfig.fromList(self.readValue() as! [Any?])
+    case 131:
+      return VideoQuality.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -265,6 +332,9 @@ private class PlayerApiPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.rawValue)
     } else if let value = value as? PlayerConfig {
       super.writeByte(130)
+      super.writeValue(value.toList())
+    } else if let value = value as? VideoQuality {
+      super.writeByte(131)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -298,6 +368,8 @@ protocol BananaPlayerHostApi {
   func setVolume(textureId: Int64, volume: Double) throws
   func getDuration(textureId: Int64) throws -> Int64
   func getPosition(textureId: Int64) throws -> Int64
+  func getVideoQualities(textureId: Int64) throws -> [VideoQuality]
+  func setVideoQuality(textureId: Int64, qualityId: String) throws
   func dispose(textureId: Int64) throws
 }
 
@@ -432,6 +504,37 @@ class BananaPlayerHostApiSetup {
     } else {
       getPositionChannel.setMessageHandler(nil)
     }
+    let getVideoQualitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getVideoQualities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getVideoQualitiesChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        do {
+          let result = try api.getVideoQualities(textureId: textureIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getVideoQualitiesChannel.setMessageHandler(nil)
+    }
+    let setVideoQualityChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setVideoQuality\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setVideoQualityChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        let qualityIdArg = args[1] as! String
+        do {
+          try api.setVideoQuality(textureId: textureIdArg, qualityId: qualityIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setVideoQualityChannel.setMessageHandler(nil)
+    }
     let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       disposeChannel.setMessageHandler { message, reply in
@@ -454,6 +557,7 @@ class BananaPlayerHostApiSetup {
 protocol BananaPlayerFlutterApiProtocol {
   @MainActor func onPlaybackStateChanged(textureId textureIdArg: Int64, state stateArg: PlaybackState) async throws
   @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64, durationMs durationMsArg: Int64, bufferedPositionMs bufferedPositionMsArg: Int64) async throws
+  @MainActor func onVideoQualitiesChanged(textureId textureIdArg: Int64, qualities qualitiesArg: [VideoQuality]) async throws
   @MainActor func onError(textureId textureIdArg: Int64, errorCode errorCodeArg: String, errorMessage errorMessageArg: String) async throws
 }
 class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
@@ -491,6 +595,26 @@ class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
       let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onPositionChanged\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([textureIdArg, positionMsArg, durationMsArg, bufferedPositionMsArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  @MainActor func onVideoQualitiesChanged(textureId textureIdArg: Int64, qualities qualitiesArg: [VideoQuality]) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onVideoQualitiesChanged\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([textureIdArg, qualitiesArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

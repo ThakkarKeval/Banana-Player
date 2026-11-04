@@ -50,6 +50,13 @@ const List<MediaPreset> _kPresets = [
     icon: Icons.eco_rounded,
   ),
   MediaPreset(
+    title: 'Apple Advanced HLS',
+    subtitle: 'Multi-rate 60/30 FPS • HLS fMP4',
+    tag: 'HLS 60FPS',
+    url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
+    icon: Icons.speed_rounded,
+  ),
+  MediaPreset(
     title: 'Mux Adaptive Stream',
     subtitle: 'Multi-bitrate Stream • HLS',
     tag: 'HLS LIVE',
@@ -306,31 +313,210 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   builder: (context, _) => _buildLiveBadge(_controller.playbackState),
                 ),
               ),
-              // Slim glowing progress indicator at stage bottom
+              // Floating Quality Selector Badge
               Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
+                top: 12,
+                right: 12,
                 child: ListenableBuilder(
                   listenable: _controller,
-                  builder: (context, _) {
-                    final dur = _controller.duration.inMilliseconds;
-                    final pos = _controller.position.inMilliseconds;
-                    if (dur <= 0) return const SizedBox.shrink();
-                    final fraction = (pos / dur).clamp(0.0, 1.0);
-                    return LinearProgressIndicator(
-                      value: fraction,
-                      minHeight: 3,
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      valueColor: const AlwaysStoppedAnimation(AmaizeTheme.nachoYellow),
-                    );
-                  },
+                  builder: (context, _) => _buildQualityBadge(),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildQualityBadge() {
+    final qualities = _controller.videoQualities;
+    final selected = _controller.selectedQuality;
+    final String label = selected?.label ?? (qualities.isNotEmpty ? 'Auto' : 'HD');
+
+    return InkWell(
+      onTap: qualities.isNotEmpty ? () => _showQualityPicker(context) : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: AmaizeTheme.cardSurface.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AmaizeTheme.nachoYellow.withValues(alpha: 0.5),
+          ),
+          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.tune_rounded,
+              color: AmaizeTheme.nachoYellow,
+              size: 13,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showQualityPicker(BuildContext context) {
+    final qualities = _controller.videoQualities;
+    final selected = _controller.selectedQuality;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AmaizeTheme.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.65,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.high_quality_rounded, color: AmaizeTheme.nachoYellow, size: 24),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Video Stream Quality',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AmaizeTheme.nachoYellow.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'HLS ABR',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: AmaizeTheme.nachoYellow,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: qualities.map((quality) {
+                          final isCurrent = quality.id == selected?.id ||
+                              (selected == null && quality.id == 'auto');
+                          final bitrateText = quality.bitrate > 0
+                              ? ' • ${(quality.bitrate / 1000000).toStringAsFixed(1)} Mbps'
+                              : '';
+                          final fpsText = (quality.frameRate != null && quality.frameRate! > 0)
+                              ? ' • ${quality.frameRate!.round()} fps'
+                              : '';
+                          final resolutionText = quality.height > 0
+                              ? '${quality.width}x${quality.height}'
+                              : (quality.id == 'auto' ? 'Adaptive bitrate based on network' : '');
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: isCurrent
+                                      ? AmaizeTheme.nachoYellow
+                                      : Colors.white.withValues(alpha: 0.06),
+                                ),
+                              ),
+                              tileColor: isCurrent
+                                  ? AmaizeTheme.nachoYellow.withValues(alpha: 0.12)
+                                  : AmaizeTheme.cardSurfaceLight,
+                              leading: Icon(
+                                isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white38,
+                                size: 20,
+                              ),
+                              title: Text(
+                                quality.label ?? (quality.height > 0 ? '${quality.height}p' : quality.id),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white,
+                                ),
+                              ),
+                              subtitle: resolutionText.isNotEmpty
+                                  ? Text(
+                                      '$resolutionText$bitrateText$fpsText',
+                                      style: const TextStyle(fontSize: 12, color: Colors.white54),
+                                    )
+                                  : null,
+                              trailing: (quality.frameRate != null && quality.frameRate! > 0)
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: isCurrent
+                                            ? AmaizeTheme.nachoYellow.withValues(alpha: 0.2)
+                                            : Colors.white.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: isCurrent
+                                              ? AmaizeTheme.nachoYellow.withValues(alpha: 0.4)
+                                              : Colors.white12,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${quality.frameRate!.round()} FPS',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                          color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white70,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                              onTap: () {
+                                _controller.setVideoQuality(quality.id);
+                                Navigator.pop(bottomSheetContext);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

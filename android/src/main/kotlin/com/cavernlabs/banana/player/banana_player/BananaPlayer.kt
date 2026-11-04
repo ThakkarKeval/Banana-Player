@@ -7,9 +7,13 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import io.flutter.view.TextureRegistry
 import kotlinx.coroutines.CoroutineScope
@@ -49,8 +53,19 @@ class BananaPlayer(
         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
         .build()
 
+    private val loadControl = DefaultLoadControl.Builder()
+        .setBackBuffer(/* backBufferDurationMs = */ 30_000, /* retainBackBufferFromKeyframe = */ true)
+        .setBufferDurationsMs(
+            /* minBufferMs = */ 50_000,
+            /* maxBufferMs = */ 50_000,
+            /* bufferForPlaybackMs = */ 1_000,
+            /* bufferForPlaybackAfterRebufferMs = */ 1_500
+        )
+        .build()
+
     private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(mediaSourceFactory)
+        .setLoadControl(loadControl)
         .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
         .build()
 
@@ -96,6 +111,14 @@ class BananaPlayer(
                 } catch (_: Exception) {
                 }
             }
+        }
+
+        override fun onTracksChanged(tracks: Tracks) {
+            notifyVideoQualities()
+        }
+
+        override fun onRenderedFirstFrame() {
+            notifyVideoQualities()
         }
     }
 
@@ -150,6 +173,7 @@ class BananaPlayer(
     }
 
     init {
+        exoPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         exoPlayer.setVideoSurface(surface)
         exoPlayer.volume = config.volume.toFloat()
         exoPlayer.addListener(playerListener)
@@ -176,10 +200,130 @@ class BananaPlayer(
 
     fun setSource(url: String) {
         stopProgressUpdates()
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+            .build()
         val mediaItem = MediaItem.fromUri(url)
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.play()
+    }
+
+    fun getVideoQualities(): List<VideoQuality> {
+        val tracks = exoPlayer.currentTracks
+        val result = mutableListOf<VideoQuality>()
+
+        val hasVideoOverride = exoPlayer.trackSelectionParameters.overrides.values.any {
+            it.mediaTrackGroup.type == C.TRACK_TYPE_VIDEO
+        }
+        val isAuto = !hasVideoOverride
+
+        var groupIndex = 0
+        for (group in tracks.groups) {
+            if (group.type == C.TRACK_TYPE_VIDEO) {
+                val mediaTrackGroup = group.mediaTrackGroup
+                for (trackIndex in 0 until mediaTrackGroup.length) {
+                    if (group.isTrackSupported(trackIndex)) {
+                        val format = mediaTrackGroup.getFormat(trackIndex)
+                        val width = format.width.toLong().coerceAtLeast(0L)
+                        val height = format.height.toLong().coerceAtLeast(0L)
+                        val bitrate = format.bitrate.toLong().coerceAtLeast(0L)
+                        val frameRate = if (format.frameRate > 0) format.frameRate.toDouble() else null
+                        val id = "${groupIndex}_${trackIndex}"
+                        val label = if (height > 0) {
+                            "${height}p"
+                        } else if (width > 0) {
+                            "${width}x${height}"
+                        } else {
+                            format.label ?: "Quality $trackIndex"
+                        }
+
+                        val isSelected = if (hasVideoOverride) {
+                            group.isTrackSelected(trackIndex)
+                        } else {
+                            false
+                        }
+
+                        result.add(
+                            VideoQuality(
+                                id = id,
+                                width = width,
+                                height = height,
+                                bitrate = bitrate,
+                                isSelected = isSelected,
+                                label = label,
+                                frameRate = frameRate
+                            )
+                        )
+                    }
+                }
+            }
+            groupIndex++
+        }
+
+        if (result.isNotEmpty()) {
+            val autoOption = VideoQuality(
+                id = "auto",
+                width = 0L,
+                height = 0L,
+                bitrate = 0L,
+                isSelected = isAuto,
+                label = "Auto",
+                frameRate = null
+            )
+            result.add(0, autoOption)
+        }
+
+        return result
+    }
+
+    fun setVideoQuality(qualityId: String) {
+        if (qualityId.equals("auto", ignoreCase = true)) {
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                .build()
+        } else {
+            val tracks = exoPlayer.currentTracks
+            var targetOverride: TrackSelectionOverride? = null
+            var groupIndex = 0
+            for (group in tracks.groups) {
+                if (group.type == C.TRACK_TYPE_VIDEO) {
+                    val mediaTrackGroup = group.mediaTrackGroup
+                    for (trackIndex in 0 until mediaTrackGroup.length) {
+                        val id = "${groupIndex}_${trackIndex}"
+                        val format = mediaTrackGroup.getFormat(trackIndex)
+                        val altId = if (format.id != null) format.id else "${format.height}p"
+                        if (qualityId == id || qualityId == altId || qualityId == "${format.height}p" || qualityId == "${format.width}x${format.height}") {
+                            targetOverride = TrackSelectionOverride(mediaTrackGroup, trackIndex)
+                            break
+                        }
+                    }
+                    if (targetOverride != null) break
+                }
+                groupIndex++
+            }
+
+            if (targetOverride != null) {
+                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                    .setOverrideForType(targetOverride)
+                    .build()
+            }
+        }
+        notifyVideoQualities()
+    }
+
+    private fun notifyVideoQualities() {
+        val qualities = getVideoQualities()
+        scope.launch {
+            try {
+                flutterApi.onVideoQualitiesChanged(textureId, qualities)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun seekTo(positionMs: Long) {

@@ -8,6 +8,8 @@ void main() {
   test('BananaPlayerController can be instantiated', () {
     final controller = BananaPlayerController();
     expect(controller, isNotNull);
+    expect(controller.videoQualities, isEmpty);
+    expect(controller.selectedQuality, isNull);
   });
 
   group('BananaSeekBar widget validation', () {
