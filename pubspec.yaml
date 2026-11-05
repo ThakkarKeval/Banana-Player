@@ -1,6 +1,6 @@
 name: banana_player
 description: "A high-performance video player for Flutter using ExoPlayer (Media3) on Android and AVPlayer on iOS with HLS, custom seekbars, and quality selection."
-version: 0.0.2
+version: 0.0.3
 repository: https://github.com/ThakkarKeval/Banana-Player
 issue_tracker: https://github.com/ThakkarKeval/Banana-Player/issues
 

@@ -33,7 +33,8 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
             context = currentBinding.applicationContext,
             textureEntry = textureEntry,
             flutterApi = currentFlutterApi,
-            config = config
+            config = config,
+            flutterAssets = currentBinding.flutterAssets
         )
         players[textureId] = player
         return textureId

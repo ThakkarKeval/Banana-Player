@@ -164,7 +164,24 @@ class _VideoScreenState extends State<VideoScreen> {
 
 ## Advanced Usage
 
-### 1. Quality Selection (HLS / Multi-bitrate)
+### 1. Local Files & Bundled Assets
+
+Play local device files or packaged Flutter assets directly:
+
+```dart
+// 1. Play from local device file (downloaded / recorded)
+final File videoFile = File('/path/to/video.mp4');
+await _controller.initializeFile(videoFile);
+
+// 2. Play from bundled Flutter asset
+await _controller.initializeAsset('assets/videos/intro.mp4');
+
+// 3. Or use initialize with automatic path resolution
+await _controller.initialize(url: '/storage/emulated/0/Download/movie.mp4');
+await _controller.initialize(url: 'assets/videos/intro.mp4');
+```
+
+### 2. Quality Selection (HLS / Multi-bitrate)
 
 ```dart
 // Inspect available video streams
@@ -221,18 +238,23 @@ BananaSeekBar(
 
 ### `BananaPlayerController`
 
-| Property / Method                                                 | Description                                                                |
-|:------------------------------------------------------------------|:---------------------------------------------------------------------------|
-| `initialize({required String url, bool autoPlay, double volume})` | Creates the native player instance and allocates the texture.              |
-| `play()` / `pause()`                                              | Controls playback state.                                                   |
-| `seekTo(Duration position)`                                       | Seeks native player to target duration.                                    |
-| `setPlaybackSpeed(double speed)`                                  | Sets playback speed (e.g., 0.5, 1.0, 1.5, 2.0).                            |
-| `setVideoQuality(String qualityId)`                               | Switches video stream quality track.                                       |
-| `setVolume(double volume)`                                        | Sets output audio volume (`0.0` to `1.0`).                                 |
-| `playbackState`                                                   | Current `PlaybackState` (`idle`, `buffering`, `ready`, `ended`, `paused`). |
-| `videoQualities`                                                  | List of available `VideoQuality` tracks.                                   |
-| `position` / `duration` / `bufferedPosition`                      | Duration metrics.                                                          |
-| `dispose()`                                                       | Releases native player and texture resources.                              |
+| Property / Method | Description |
+|:---|:---|
+| `initialize({required String url, bool autoPlay, double volume})` | Creates the native player instance (network stream, local file, or asset). |
+| `initializeFile(File file, {bool autoPlay, double volume})` | Initializes playback from a local device `File`. |
+| `initializeAsset(String assetPath, {bool autoPlay, double volume, String? package})` | Initializes playback from a bundled Flutter asset. |
+| `setSource(String url)` | Changes the media source URL without destroying the surface or decoder. |
+| `setSourceFile(File file)` | Changes the media source to a local device `File`. |
+| `setSourceAsset(String assetPath, {String? package})` | Changes the media source to a bundled Flutter asset. |
+| `play()` / `pause()` | Controls playback state. |
+| `seekTo(Duration position)` | Seeks native player to target duration. |
+| `setPlaybackSpeed(double speed)` | Sets playback speed (e.g., 0.5, 1.0, 1.5, 2.0). |
+| `setVideoQuality(String qualityId)` | Switches video stream quality track. |
+| `setVolume(double volume)` | Sets output audio volume (`0.0` to `1.0`). |
+| `playbackState` | Current `PlaybackState` (`idle`, `buffering`, `ready`, `ended`, `paused`). |
+| `videoQualities` | List of available `VideoQuality` tracks. |
+| `position` / `duration` / `bufferedPosition` | Duration metrics. |
+| `dispose()` | Releases native player and texture resources. |
 
 ---
 

@@ -32,7 +32,8 @@ public class BananaPlayerPlugin: NSObject, FlutterPlugin, BananaPlayerHostApi {
     let player = BananaPlayer(
       config: config,
       registry: registrar.textures(),
-      flutterApi: flutterApi
+      flutterApi: flutterApi,
+      registrar: registrar
     )
     players[player.textureId] = player
     return player.textureId

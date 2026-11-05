@@ -1,3 +1,11 @@
+## 0.0.3
+
+* Added local storage media playback support (`file://` URIs and raw filesystem paths).
+* Added bundled Flutter asset playback support (`initializeAsset(...)`, `setSourceAsset(...)`).
+* Added `initializeFile(...)` and `setSourceFile(...)` convenience methods to `BananaPlayerController`.
+* Automatic normalization of file paths and asset paths across Android and iOS engines.
+* Expanded documentation with local file and asset quickstart examples.
+
 ## 0.0.2
 
 * Verified repository, issue tracker, and metadata configuration.

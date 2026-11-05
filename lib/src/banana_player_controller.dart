@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/foundation.dart';
 
@@ -104,7 +105,19 @@ class BananaPlayerController extends ChangeNotifier {
       StreamController<String>.broadcast();
   Stream<String> get onError => _errorStreamController.stream;
 
+  /// Normalizes a given URL, asset path, or file URI into a format recognizable by native engines.
+  static String _normalizeUrl(String source) {
+    final trimmed = source.trim();
+    if (trimmed.startsWith('assets/')) {
+      return 'asset:///$trimmed';
+    }
+    return trimmed;
+  }
+
   /// Initializes the native player with the given [url].
+  ///
+  /// Can be a network URL (`http://`, `https://`), a local file URI (`file://`),
+  /// a raw local filesystem path (`/path/to/video.mp4`), or an asset (`asset:///assets/...`).
   Future<int> initialize({
     required String url,
     bool autoPlay = true,
@@ -127,7 +140,12 @@ class BananaPlayerController extends ChangeNotifier {
     _duration = Duration.zero;
     _bufferedPosition = Duration.zero;
     _videoQualities = const [];
-    final config = PlayerConfig(url: url, autoPlay: autoPlay, volume: volume);
+    final normalized = _normalizeUrl(url);
+    final config = PlayerConfig(
+      url: normalized,
+      autoPlay: autoPlay,
+      volume: volume,
+    );
     final textureId = await _hostApi.create(config);
 
     _textureId = textureId;
@@ -135,6 +153,40 @@ class BananaPlayerController extends ChangeNotifier {
     notifyListeners();
 
     return textureId;
+  }
+
+  /// Initializes playback from a local device [File].
+  Future<int> initializeFile(
+    File file, {
+    bool autoPlay = true,
+    double volume = 1.0,
+  }) {
+    return initialize(
+      url: file.uri.toString(),
+      autoPlay: autoPlay,
+      volume: volume,
+    );
+  }
+
+  /// Initializes playback from a bundled Flutter asset (e.g. `assets/videos/intro.mp4`).
+  Future<int> initializeAsset(
+    String assetPath, {
+    bool autoPlay = true,
+    double volume = 1.0,
+    String? package,
+  }) {
+    var cleanPath = assetPath.trim();
+    while (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+    final resolvedPath = package != null
+        ? 'packages/$package/$cleanPath'
+        : cleanPath;
+    return initialize(
+      url: 'asset:///$resolvedPath',
+      autoPlay: autoPlay,
+      volume: volume,
+    );
   }
 
   /// Changes the media source URL without destroying and recreating the surface or decoder.
@@ -152,11 +204,29 @@ class BananaPlayerController extends ChangeNotifier {
     _playbackState = PlaybackState.buffering;
     notifyListeners();
 
+    final normalized = _normalizeUrl(url);
     if (_textureId != null) {
-      await _hostApi.setSource(_textureId!, url);
+      await _hostApi.setSource(_textureId!, normalized);
     } else {
-      await initialize(url: url);
+      await initialize(url: normalized);
     }
+  }
+
+  /// Changes the media source to a local device [File].
+  Future<void> setSourceFile(File file) {
+    return setSource(file.uri.toString());
+  }
+
+  /// Changes the media source to a bundled Flutter asset (e.g. `assets/videos/intro.mp4`).
+  Future<void> setSourceAsset(String assetPath, {String? package}) {
+    var cleanPath = assetPath.trim();
+    while (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+    final resolvedPath = package != null
+        ? 'packages/$package/$cleanPath'
+        : cleanPath;
+    return setSource('asset:///$resolvedPath');
   }
 
   /// Starts playback. Restarts from the beginning if the video has ended.

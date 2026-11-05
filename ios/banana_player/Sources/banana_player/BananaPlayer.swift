@@ -12,6 +12,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
 
   private let registry: FlutterTextureRegistry
   private let flutterApi: BananaPlayerFlutterApi
+  private let registrar: FlutterPluginRegistrar
   private let player: AVPlayer
 
   private var currentItem: AVPlayerItem?
@@ -32,10 +33,12 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
   init(
     config: PlayerConfig,
     registry: FlutterTextureRegistry,
-    flutterApi: BananaPlayerFlutterApi
+    flutterApi: BananaPlayerFlutterApi,
+    registrar: FlutterPluginRegistrar
   ) {
     self.registry = registry
     self.flutterApi = flutterApi
+    self.registrar = registrar
     self.player = AVPlayer()
 
     super.init()
@@ -67,13 +70,36 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
 
   // MARK: - Media Loading
 
+  private func resolveMediaURL(from urlString: String) -> URL? {
+    if urlString.hasPrefix("asset://") {
+      var assetPath = String(urlString.dropFirst("asset://".count))
+      while assetPath.hasPrefix("/") {
+        assetPath = String(assetPath.dropFirst())
+      }
+      let key = registrar.lookupKey(forAsset: assetPath)
+      if let path = Bundle.main.path(forResource: key, ofType: nil) {
+        return URL(fileURLWithPath: path)
+      }
+      if let directPath = Bundle.main.path(forResource: assetPath, ofType: nil) {
+        return URL(fileURLWithPath: directPath)
+      }
+      return nil
+    } else if urlString.hasPrefix("/") {
+      return URL(fileURLWithPath: urlString)
+    } else if urlString.hasPrefix("file://") {
+      return URL(string: urlString)
+    } else {
+      return URL(string: urlString)
+    }
+  }
+
   private func loadMedia(url: String, autoPlay: Bool) {
-    guard let mediaUrl = URL(string: url) else {
+    guard let mediaUrl = resolveMediaURL(from: url) else {
       Task { @MainActor in
         try? await self.flutterApi.onError(
           textureId: self.textureId,
           errorCode: "INVALID_URL",
-          errorMessage: "Invalid media URL: \(url)"
+          errorMessage: "Invalid media URL or asset not found: \(url)"
         )
       }
       return

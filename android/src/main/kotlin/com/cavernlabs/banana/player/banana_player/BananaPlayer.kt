@@ -1,7 +1,9 @@
 package com.cavernlabs.banana.player.banana_player
 
 import android.content.Context
+import android.net.Uri
 import android.view.Surface
+import java.io.File
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -32,7 +34,8 @@ class BananaPlayer(
     context: Context,
     private val textureEntry: TextureRegistry.SurfaceTextureEntry,
     private val flutterApi: BananaPlayerFlutterApi,
-    config: PlayerConfig
+    config: PlayerConfig,
+    private val flutterAssets: io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterAssets? = null
 ) {
     val textureId: Long = textureEntry.id()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -172,13 +175,32 @@ class BananaPlayer(
         }
     }
 
+    private fun resolveUri(url: String): Uri {
+        return when {
+            url.startsWith("asset://") -> {
+                var assetPath = url.removePrefix("asset://")
+                while (assetPath.startsWith("/")) {
+                    assetPath = assetPath.substring(1)
+                }
+                val lookupKey = flutterAssets?.getAssetFilePathByName(assetPath) ?: assetPath
+                Uri.parse("asset:///$lookupKey")
+            }
+            url.startsWith("/") -> {
+                Uri.fromFile(java.io.File(url))
+            }
+            else -> {
+                Uri.parse(url)
+            }
+        }
+    }
+
     init {
         exoPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         exoPlayer.setVideoSurface(surface)
         exoPlayer.volume = config.volume.toFloat()
         exoPlayer.addListener(playerListener)
 
-        val mediaItem = MediaItem.fromUri(config.url)
+        val mediaItem = MediaItem.fromUri(resolveUri(config.url))
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = config.autoPlay
@@ -204,7 +226,7 @@ class BananaPlayer(
             .buildUpon()
             .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
             .build()
-        val mediaItem = MediaItem.fromUri(url)
+        val mediaItem = MediaItem.fromUri(resolveUri(url))
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.play()
