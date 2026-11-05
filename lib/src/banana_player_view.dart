@@ -4,6 +4,7 @@ import 'banana_player_controller.dart';
 
 /// A widget that displays the video output of a [BananaPlayerController].
 class BananaPlayerView extends StatelessWidget {
+  /// Creates a [BananaPlayerView] bound to [controller].
   const BananaPlayerView({
     super.key,
     required this.controller,

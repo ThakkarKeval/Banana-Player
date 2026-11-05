@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'banana_player'
-  s.version          = '0.0.3'
+  s.version          = '0.0.4'
   s.summary          = 'A high-performance video player for Flutter using AVPlayer on iOS.'
   s.description      = <<-DESC
 A high-performance video player plugin for Flutter using native AVPlayer on iOS and ExoPlayer (Media3) on Android with HLS streaming, texture rendering, and quality selection.

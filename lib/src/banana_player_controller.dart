@@ -7,6 +7,7 @@ import 'player_api.g.dart';
 
 /// Controller managing a native video player instance (ExoPlayer on Android, AVPlayer on iOS).
 class BananaPlayerController extends ChangeNotifier {
+  /// Creates a new [BananaPlayerController].
   BananaPlayerController() {
     _ensureFlutterApiInitialized();
   }
@@ -80,29 +81,41 @@ class BananaPlayerController extends ChangeNotifier {
   // Streams for event-driven architectures
   final StreamController<PlaybackState> _stateStreamController =
       StreamController<PlaybackState>.broadcast();
+
+  /// Broadcast stream emitting the current [PlaybackState] whenever it changes.
   Stream<PlaybackState> get onPlaybackStateChanged =>
       _stateStreamController.stream;
 
   final StreamController<Duration> _positionStreamController =
       StreamController<Duration>.broadcast();
+
+  /// Broadcast stream emitting the current playback [Duration] as media plays or seeks.
   Stream<Duration> get onPositionChanged => _positionStreamController.stream;
 
   final StreamController<Duration> _durationStreamController =
       StreamController<Duration>.broadcast();
+
+  /// Broadcast stream emitting the total media [Duration] once it is loaded or updated.
   Stream<Duration> get onDurationChanged => _durationStreamController.stream;
 
   final StreamController<Duration> _bufferedStreamController =
       StreamController<Duration>.broadcast();
+
+  /// Broadcast stream emitting the cached/buffered [Duration] as media streams.
   Stream<Duration> get onBufferedPositionChanged =>
       _bufferedStreamController.stream;
 
   final StreamController<List<VideoQuality>> _qualitiesStreamController =
       StreamController<List<VideoQuality>>.broadcast();
+
+  /// Broadcast stream emitting available [VideoQuality] options when tracks change.
   Stream<List<VideoQuality>> get onVideoQualitiesChanged =>
       _qualitiesStreamController.stream;
 
   final StreamController<String> _errorStreamController =
       StreamController<String>.broadcast();
+
+  /// Broadcast stream emitting an error message string when a playback failure occurs.
   Stream<String> get onError => _errorStreamController.stream;
 
   /// Normalizes a given URL, asset path, or file URI into a format recognizable by native engines.
@@ -389,6 +402,49 @@ class BananaPlayerController extends ChangeNotifier {
   void _handleError(String errorCode, String errorMessage) {
     _errorMessage = '$errorCode: $errorMessage';
     _errorStreamController.add(_errorMessage!);
+    notifyListeners();
+  }
+
+  /// Normalizes a URL for testing purposes.
+  @visibleForTesting
+  static String normalizeUrlForTesting(String url) => _normalizeUrl(url);
+
+  /// Updates internal controller state for unit and widget testing.
+  @visibleForTesting
+  void updateStateForTesting({
+    int? textureId,
+    PlaybackState? playbackState,
+    Duration? position,
+    Duration? duration,
+    Duration? bufferedPosition,
+    List<VideoQuality>? videoQualities,
+    String? errorMessage,
+  }) {
+    if (textureId != null) _textureId = textureId;
+    if (playbackState != null) {
+      _playbackState = playbackState;
+      _stateStreamController.add(playbackState);
+    }
+    if (position != null) {
+      _position = position;
+      _positionStreamController.add(position);
+    }
+    if (duration != null) {
+      _duration = duration;
+      _durationStreamController.add(duration);
+    }
+    if (bufferedPosition != null) {
+      _bufferedPosition = bufferedPosition;
+      _bufferedStreamController.add(bufferedPosition);
+    }
+    if (videoQualities != null) {
+      _videoQualities = List<VideoQuality>.unmodifiable(videoQualities);
+      _qualitiesStreamController.add(_videoQualities);
+    }
+    if (errorMessage != null) {
+      _errorMessage = errorMessage;
+      _errorStreamController.add(errorMessage);
+    }
     notifyListeners();
   }
 }

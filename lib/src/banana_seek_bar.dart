@@ -4,6 +4,7 @@ import 'banana_player_controller.dart';
 
 /// Current state snapshot passed to [BananaSeekBar] builder functions.
 class BananaSeekBarValue {
+  /// Creates a [BananaSeekBarValue] snapshot.
   const BananaSeekBarValue({
     required this.position,
     required this.duration,
@@ -62,6 +63,7 @@ class BananaSeekBarValue {
 /// permitted. Scrollable list widgets ([ListView], [GridView], [SingleChildScrollView],
 /// [Scrollable], etc.) are forbidden and will throw an [ArgumentError].
 class BananaSeekBar extends StatefulWidget {
+  /// Creates a [BananaSeekBar] with custom or default cinema styling.
   BananaSeekBar({
     super.key,
     required this.controller,
@@ -180,7 +182,7 @@ class BananaSeekBar extends StatefulWidget {
   final Widget Function(BuildContext context, Duration scrubPosition)?
   scrubTooltipBuilder;
 
-  /// Full layout builder providing [BananaSeekBarValue] and [defaultLayout].
+  /// Full layout builder providing [BananaSeekBarValue] and the default seekbar layout widget.
   final Widget Function(
     BuildContext context,
     BananaSeekBarValue value,

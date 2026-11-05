@@ -1,3 +1,10 @@
+## 0.0.4
+
+* Expanded test coverage with comprehensive unit and widget tests for `BananaPlayerController`, `BananaPlayerView`, and `BananaSeekBar`.
+* Documented library, constructors, and event stream getters (zero `dartdoc` warnings).
+* Added GitHub Actions continuous integration (CI) workflow for automated linting, testing, and formatting verification.
+* Excluded test coverage and local documentation artifacts in `.pubignore`.
+
 ## 0.0.3
 
 * Added local storage media playback support (`file://` URIs and raw filesystem paths).

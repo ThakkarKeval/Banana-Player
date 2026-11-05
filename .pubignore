@@ -14,3 +14,8 @@
 .idea/
 .gradle/
 *.iml
+
+# Test coverage & generated docs
+/coverage/
+/doc/
+
