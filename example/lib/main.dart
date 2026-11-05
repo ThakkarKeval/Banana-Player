@@ -13,16 +13,16 @@ void main() async {
   runApp(const BananaPlayerApp());
 }
 
-/// AmaiZe Cheese-Chilli inspired color palette
-class AmaizeTheme {
-  static const Color nachoYellow = Color(0xFFFFCC00);
-  static const Color brightYellow = Color(0xFFFFE033);
-  static const Color chilliRed = Color(0xFFE21B23);
-  static const Color cheeseAmber = Color(0xFFFF9100);
-  static const Color deepNavy = Color(0xFF142552);
-  static const Color darkCanvas = Color(0xFF101014);
-  static const Color cardSurface = Color(0xFF1A1A22);
-  static const Color cardSurfaceLight = Color(0xFF242430);
+/// Authentic Banana Player Theme
+class BananaTheme {
+  static const Color primaryYellow = Color(0xFFFFD200); // Ripe Banana Yellow
+  static const Color brightYellow = Color(0xFFFFE033);  // Electric Banana Yellow
+  static const Color amberGold = Color(0xFFFFA000);     // Warm Amber Gold
+  static const Color deepNavy = Color(0xFF142036);      // Cinema Deep Blue
+  static const Color darkCanvas = Color(0xFF0F0F14);    // Studio Canvas Dark
+  static const Color cardSurface = Color(0xFF181822);   // Card Surface
+  static const Color cardSurfaceLight = Color(0xFF232330); // Raised Surface
+  static const Color alertRed = Color(0xFFE53935);      // Mute / Error Red
 }
 
 class MediaPreset {
@@ -75,11 +75,11 @@ class BananaPlayerApp extends StatelessWidget {
       title: 'Banana Player',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: AmaizeTheme.darkCanvas,
+        scaffoldBackgroundColor: BananaTheme.darkCanvas,
         colorScheme: const ColorScheme.dark(
-          primary: AmaizeTheme.nachoYellow,
-          secondary: AmaizeTheme.chilliRed,
-          surface: AmaizeTheme.cardSurface,
+          primary: BananaTheme.primaryYellow,
+          secondary: BananaTheme.amberGold,
+          surface: BananaTheme.cardSurface,
         ),
       ),
       home: const BananaPlayerHome(),
@@ -99,6 +99,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   int _selectedPresetIndex = 0;
   bool _isMuted = false;
   bool _useCustomWidgets = false;
+  bool _isSwitchingPreset = false;
 
   String _formatDuration(Duration duration) {
     if (duration < Duration.zero) return '0:00';
@@ -124,12 +125,23 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   }
 
   Future<void> _switchPreset(int index) async {
-    if (index == _selectedPresetIndex) return;
+    if (index == _selectedPresetIndex || _isSwitchingPreset) return;
     setState(() {
       _selectedPresetIndex = index;
+      _isSwitchingPreset = true;
     });
-    final preset = _kPresets[index];
-    await _controller.setSource(preset.url);
+    try {
+      final preset = _kPresets[index];
+      await _controller.setSource(preset.url);
+    } finally {
+      // Allow the new stream to prepare and render smoothly
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (mounted) {
+        setState(() {
+          _isSwitchingPreset = false;
+        });
+      }
+    }
   }
 
   Future<void> _toggleMute() async {
@@ -156,7 +168,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header with Cheese Chilli branding
+              // Header with Banana branding
               _buildHeader(),
               const SizedBox(height: 16),
 
@@ -187,12 +199,12 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [AmaizeTheme.nachoYellow, AmaizeTheme.cheeseAmber],
+              colors: [BananaTheme.primaryYellow, BananaTheme.amberGold],
             ),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: AmaizeTheme.nachoYellow.withValues(alpha: 0.3),
+                color: BananaTheme.primaryYellow.withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -212,7 +224,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
-                    color: AmaizeTheme.nachoYellow,
+                    color: BananaTheme.primaryYellow,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -232,16 +244,19 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AmaizeTheme.chilliRed,
+                    color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: BananaTheme.primaryYellow.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Text(
-                    'CHEESE CHILLI',
+                    'CINEMA EDITION',
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
-                      color: Colors.white,
+                      color: BananaTheme.primaryYellow,
                     ),
                   ),
                 ),
@@ -259,16 +274,18 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   }
 
   Widget _buildPlayerStage() {
+    final currentPreset = _kPresets[_selectedPresetIndex];
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AmaizeTheme.nachoYellow.withValues(alpha: 0.4),
+          color: BananaTheme.primaryYellow.withValues(alpha: 0.4),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AmaizeTheme.nachoYellow.withValues(alpha: 0.15),
+            color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
             blurRadius: 24,
             spreadRadius: -4,
           ),
@@ -289,14 +306,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const CircularProgressIndicator(
-                        color: AmaizeTheme.nachoYellow,
+                        color: BananaTheme.primaryYellow,
                         strokeWidth: 3,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Preparing Stream...',
                         style: TextStyle(
-                          color: AmaizeTheme.nachoYellow.withValues(alpha: 0.8),
+                          color: BananaTheme.primaryYellow.withValues(alpha: 0.8),
                           fontSize: 13,
                         ),
                       ),
@@ -304,28 +321,240 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   ),
                 ),
               ),
-              // Floating State Badge
+
+              // Smooth animated cross-fade scrim when switching presets
+              Positioned.fill(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: _isSwitchingPreset
+                      ? Container(
+                          key: const ValueKey('switching_scrim'),
+                          color: Colors.black.withValues(alpha: 0.85),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    color: BananaTheme.primaryYellow,
+                                    strokeWidth: 3,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Loading ${currentPreset.title}...',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('empty_scrim')),
+                ),
+              ),
+
+              // Floating State Badge with smooth size animation
               Positioned(
                 top: 12,
                 left: 12,
                 child: ListenableBuilder(
                   listenable: _controller,
-                  builder: (context, _) => _buildLiveBadge(_controller.playbackState),
+                  builder: (context, _) => AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: _buildLiveBadge(_controller.playbackState),
+                  ),
                 ),
               ),
-              // Floating Quality Selector Badge
+              // Floating Quality & Speed Controls with smooth size animation
               Positioned(
                 top: 12,
                 right: 12,
                 child: ListenableBuilder(
                   listenable: _controller,
-                  builder: (context, _) => _buildQualityBadge(),
+                  builder: (context, _) => AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildSpeedBadge(),
+                        const SizedBox(width: 8),
+                        _buildQualityBadge(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSpeedBadge() {
+    final speed = _controller.playbackSpeed;
+    final speedText = speed == 1.0 ? '1.0x' : '${speed.toStringAsFixed(speed % 1 == 0 ? 0 : 2)}x';
+
+    return InkWell(
+      onTap: _controller.isInitialized ? () => _showSpeedPicker(context) : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: BananaTheme.cardSurface.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: speed != 1.0
+                ? BananaTheme.brightYellow
+                : Colors.white.withValues(alpha: 0.25),
+          ),
+          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.speed_rounded,
+              color: speed != 1.0 ? BananaTheme.brightYellow : Colors.white70,
+              size: 13,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              speedText,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+                color: speed != 1.0 ? BananaTheme.brightYellow : Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSpeedPicker(BuildContext context) {
+    const speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    final currentSpeed = _controller.playbackSpeed;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: BananaTheme.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.speed_rounded, color: BananaTheme.primaryYellow, size: 24),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Playback Speed',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${currentSpeed == 1.0 ? '1.0' : currentSpeed}x ACTIVE',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: BananaTheme.primaryYellow,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: speeds.map((speed) {
+                        final isSelected = (currentSpeed - speed).abs() < 0.01;
+                        final label = speed == 1.0 ? '1.0x • Normal' : '${speed}x';
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? BananaTheme.primaryYellow
+                                    : Colors.white.withValues(alpha: 0.06),
+                              ),
+                            ),
+                            tileColor: isSelected
+                                ? BananaTheme.primaryYellow.withValues(alpha: 0.12)
+                                : BananaTheme.cardSurfaceLight,
+                            leading: Icon(
+                              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                              color: isSelected ? BananaTheme.primaryYellow : Colors.white38,
+                              size: 20,
+                            ),
+                            title: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? BananaTheme.primaryYellow : Colors.white,
+                              ),
+                            ),
+                            onTap: () {
+                              _controller.setPlaybackSpeed(speed);
+                              Navigator.pop(bottomSheetContext);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -340,10 +569,10 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: AmaizeTheme.cardSurface.withValues(alpha: 0.85),
+          color: BananaTheme.cardSurface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AmaizeTheme.nachoYellow.withValues(alpha: 0.5),
+            color: BananaTheme.primaryYellow.withValues(alpha: 0.5),
           ),
           boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
         ),
@@ -352,7 +581,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           children: [
             const Icon(
               Icons.tune_rounded,
-              color: AmaizeTheme.nachoYellow,
+              color: BananaTheme.primaryYellow,
               size: 13,
             ),
             const SizedBox(width: 5),
@@ -378,7 +607,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AmaizeTheme.cardSurface,
+      backgroundColor: BananaTheme.cardSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -396,7 +625,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.high_quality_rounded, color: AmaizeTheme.nachoYellow, size: 24),
+                      const Icon(Icons.high_quality_rounded, color: BananaTheme.primaryYellow, size: 24),
                       const SizedBox(width: 10),
                       const Text(
                         'Video Stream Quality',
@@ -410,7 +639,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AmaizeTheme.nachoYellow.withValues(alpha: 0.15),
+                          color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
@@ -418,7 +647,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: AmaizeTheme.nachoYellow,
+                            color: BananaTheme.primaryYellow,
                           ),
                         ),
                       ),
@@ -450,16 +679,16 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
                                   color: isCurrent
-                                      ? AmaizeTheme.nachoYellow
+                                      ? BananaTheme.primaryYellow
                                       : Colors.white.withValues(alpha: 0.06),
                                 ),
                               ),
                               tileColor: isCurrent
-                                  ? AmaizeTheme.nachoYellow.withValues(alpha: 0.12)
-                                  : AmaizeTheme.cardSurfaceLight,
+                                  ? BananaTheme.primaryYellow.withValues(alpha: 0.12)
+                                  : BananaTheme.cardSurfaceLight,
                               leading: Icon(
                                 isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white38,
+                                color: isCurrent ? BananaTheme.primaryYellow : Colors.white38,
                                 size: 20,
                               ),
                               title: Text(
@@ -467,7 +696,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white,
+                                  color: isCurrent ? BananaTheme.primaryYellow : Colors.white,
                                 ),
                               ),
                               subtitle: resolutionText.isNotEmpty
@@ -481,12 +710,12 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: isCurrent
-                                            ? AmaizeTheme.nachoYellow.withValues(alpha: 0.2)
+                                            ? BananaTheme.primaryYellow.withValues(alpha: 0.2)
                                             : Colors.white.withValues(alpha: 0.08),
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
                                           color: isCurrent
-                                              ? AmaizeTheme.nachoYellow.withValues(alpha: 0.4)
+                                              ? BananaTheme.primaryYellow.withValues(alpha: 0.4)
                                               : Colors.white12,
                                         ),
                                       ),
@@ -496,7 +725,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 0.5,
-                                          color: isCurrent ? AmaizeTheme.nachoYellow : Colors.white70,
+                                          color: isCurrent ? BananaTheme.primaryYellow : Colors.white70,
                                         ),
                                       ),
                                     )
@@ -527,17 +756,17 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
 
     switch (state) {
       case PlaybackState.ready:
-        bg = AmaizeTheme.deepNavy.withValues(alpha: 0.85);
-        dot = AmaizeTheme.brightYellow;
+        bg = BananaTheme.deepNavy.withValues(alpha: 0.85);
+        dot = BananaTheme.brightYellow;
         label = 'PLAYING';
         break;
       case PlaybackState.buffering:
-        bg = AmaizeTheme.cheeseAmber.withValues(alpha: 0.85);
+        bg = BananaTheme.amberGold.withValues(alpha: 0.85);
         dot = Colors.white;
         label = 'BUFFERING';
         break;
       case PlaybackState.ended:
-        bg = AmaizeTheme.chilliRed.withValues(alpha: 0.85);
+        bg = BananaTheme.alertRed.withValues(alpha: 0.85);
         dot = Colors.white;
         label = 'ENDED (TAP PLAY)';
         break;
@@ -599,7 +828,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: AmaizeTheme.cardSurface,
+        color: BananaTheme.cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.08),
@@ -628,11 +857,11 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: _useCustomWidgets
-                        ? AmaizeTheme.cheeseAmber.withValues(alpha: 0.2)
+                        ? BananaTheme.amberGold.withValues(alpha: 0.2)
                         : Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: _useCustomWidgets ? AmaizeTheme.cheeseAmber : Colors.white24,
+                      color: _useCustomWidgets ? BananaTheme.amberGold : Colors.white24,
                     ),
                   ),
                   child: Text(
@@ -640,7 +869,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: _useCustomWidgets ? AmaizeTheme.nachoYellow : Colors.white70,
+                      color: _useCustomWidgets ? BananaTheme.primaryYellow : Colors.white70,
                     ),
                   ),
                 ),
@@ -653,10 +882,10 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           if (!_useCustomWidgets)
             BananaSeekBar(
               controller: _controller,
-              activeTrackColor: AmaizeTheme.nachoYellow,
+              activeTrackColor: BananaTheme.primaryYellow,
               inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-              bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
-              thumbColor: AmaizeTheme.brightYellow,
+              bufferedTrackColor: BananaTheme.amberGold.withValues(alpha: 0.35),
+              thumbColor: BananaTheme.brightYellow,
               thumbRadius: 7.0,
               trackHeight: 4.0,
               showTimeLabels: true,
@@ -664,80 +893,106 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: Colors.white70,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
             )
           else
             BananaSeekBar(
               controller: _controller,
-              activeTrackColor: AmaizeTheme.nachoYellow,
+              activeTrackColor: BananaTheme.primaryYellow,
               inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-              bufferedTrackColor: AmaizeTheme.cheeseAmber.withValues(alpha: 0.35),
+              bufferedTrackColor: BananaTheme.amberGold.withValues(alpha: 0.35),
               trackHeight: 5.0,
-              // Direct custom thumb widget (flame icon with cheese amber border)
+              showTimeLabels: false,
+              // Direct custom thumb widget (banana circle with amber border)
               customThumb: Container(
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AmaizeTheme.brightYellow, AmaizeTheme.cheeseAmber],
+                    colors: [BananaTheme.brightYellow, BananaTheme.amberGold],
                   ),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AmaizeTheme.nachoYellow.withValues(alpha: 0.6),
+                      color: BananaTheme.primaryYellow.withValues(alpha: 0.6),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.local_fire_department_rounded,
-                  size: 13,
-                  color: AmaizeTheme.chilliRed,
+                  Icons.play_arrow_rounded,
+                  size: 14,
+                  color: Colors.black,
                 ),
               ),
               // Direct custom leading widget (Row with icon and format)
               leading: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AmaizeTheme.cardSurfaceLight,
+                  color: BananaTheme.cardSurfaceLight,
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white12),
                 ),
-                child: const Icon(Icons.hd_rounded, size: 14, color: AmaizeTheme.nachoYellow),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.hd_rounded, size: 14, color: BananaTheme.primaryYellow),
+                    SizedBox(width: 3),
+                    Text(
+                      '1080p',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: BananaTheme.primaryYellow,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               // Direct custom trailing widget (Pill with remaining duration)
               trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AmaizeTheme.chilliRed.withValues(alpha: 0.2),
+                  color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AmaizeTheme.chilliRed.withValues(alpha: 0.5)),
+                  border: Border.all(color: BananaTheme.primaryYellow.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   '-${_formatDuration(_controller.duration > _controller.position ? _controller.duration - _controller.position : Duration.zero)}',
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: AmaizeTheme.nachoYellow,
+                    color: BananaTheme.primaryYellow,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
               // Direct custom scrub tooltip floating above thumb
               scrubTooltipBuilder: (context, scrubPos) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AmaizeTheme.deepNavy,
+                    color: BananaTheme.deepNavy,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AmaizeTheme.nachoYellow),
+                    border: Border.all(color: BananaTheme.primaryYellow, width: 1.2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     _formatDuration(scrubPos),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                 );
@@ -768,7 +1023,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     : null,
               ),
 
-              // Main Play / Pause Button with Cheese Yellow Gradient
+              // Main Play / Pause Button with Banana Yellow Gradient
               GestureDetector(
                 onTap: isInitialized
                     ? () {
@@ -787,14 +1042,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: isEnded
-                          ? [AmaizeTheme.chilliRed, AmaizeTheme.cheeseAmber]
-                          : [AmaizeTheme.brightYellow, AmaizeTheme.nachoYellow],
+                          ? [BananaTheme.alertRed, BananaTheme.amberGold]
+                          : [BananaTheme.brightYellow, BananaTheme.primaryYellow],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isEnded ? AmaizeTheme.chilliRed : AmaizeTheme.nachoYellow)
+                        color: (isEnded ? BananaTheme.alertRed : BananaTheme.primaryYellow)
                             .withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
@@ -832,7 +1087,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               _buildCircleAction(
                 icon: _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                 tooltip: _isMuted ? 'Unmute' : 'Mute',
-                color: _isMuted ? AmaizeTheme.chilliRed : null,
+                color: _isMuted ? BananaTheme.alertRed : null,
                 onPressed: isInitialized ? _toggleMute : null,
               ),
             ],
@@ -850,7 +1105,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AmaizeTheme.cardSurfaceLight,
+        color: BananaTheme.cardSurfaceLight,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -869,7 +1124,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       children: [
         Row(
           children: [
-            const Icon(Icons.movie_creation_outlined, color: AmaizeTheme.nachoYellow, size: 20),
+            const Icon(Icons.movie_creation_outlined, color: BananaTheme.primaryYellow, size: 20),
             const SizedBox(width: 8),
             const Text(
               'Select Stream',
@@ -883,17 +1138,17 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AmaizeTheme.chilliRed.withValues(alpha: 0.15),
+                color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AmaizeTheme.chilliRed.withValues(alpha: 0.4)),
+                border: Border.all(color: BananaTheme.primaryYellow.withValues(alpha: 0.4)),
               ),
               child: const Text(
-                'LOCKED URLS',
+                'STREAM PRESETS',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.6,
-                  color: AmaizeTheme.chilliRed,
+                  color: BananaTheme.primaryYellow,
                 ),
               ),
             ),
@@ -910,19 +1165,28 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               onTap: () => _switchPreset(index),
               borderRadius: BorderRadius.circular(14),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AmaizeTheme.nachoYellow.withValues(alpha: 0.12)
-                      : AmaizeTheme.cardSurface,
+                      ? BananaTheme.primaryYellow.withValues(alpha: 0.12)
+                      : BananaTheme.cardSurface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isSelected
-                        ? AmaizeTheme.nachoYellow
+                        ? BananaTheme.primaryYellow
                         : Colors.white.withValues(alpha: 0.08),
-                    width: isSelected ? 1.6 : 1.0,
+                    width: 1.5,
                   ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   children: [
@@ -930,8 +1194,8 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AmaizeTheme.nachoYellow
-                            : AmaizeTheme.cardSurfaceLight,
+                            ? BananaTheme.primaryYellow
+                            : BananaTheme.cardSurfaceLight,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -950,7 +1214,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? AmaizeTheme.nachoYellow : Colors.white,
+                              color: isSelected ? BananaTheme.primaryYellow : Colors.white,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -965,16 +1229,22 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AmaizeTheme.nachoYellow.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.05),
+                            ? BananaTheme.primaryYellow.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isSelected
+                              ? BananaTheme.primaryYellow.withValues(alpha: 0.4)
+                              : Colors.white.withValues(alpha: 0.08),
+                        ),
                       ),
                       child: Text(
                         preset.tag,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? AmaizeTheme.nachoYellow : Colors.white60,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          color: isSelected ? BananaTheme.primaryYellow : Colors.white70,
                         ),
                       ),
                     ),

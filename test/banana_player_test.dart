@@ -10,6 +10,7 @@ void main() {
     expect(controller, isNotNull);
     expect(controller.videoQualities, isEmpty);
     expect(controller.selectedQuality, isNull);
+    expect(controller.playbackSpeed, 1.0);
   });
 
   group('BananaSeekBar widget validation', () {
@@ -127,6 +128,32 @@ void main() {
 
       await tester.pumpWidget(seekBar);
       expect(tester.takeException(), isA<ArgumentError>());
+    });
+
+    testWidgets('resets dragging state when app lifecycle pauses or goes inactive', (tester) async {
+      final controller = BananaPlayerController();
+      BananaSeekBarValue? capturedValue;
+
+      final seekBar = MaterialApp(
+        home: Scaffold(
+          body: BananaSeekBar(
+            controller: controller,
+            builder: (context, value, defaultLayout) {
+              capturedValue = value;
+              return defaultLayout;
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(seekBar);
+      expect(capturedValue?.isDragging, false);
+
+      // Simulate app pausing (e.g. screenshot taken or app switched)
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+
+      expect(capturedValue?.isDragging, false);
     });
   });
 }

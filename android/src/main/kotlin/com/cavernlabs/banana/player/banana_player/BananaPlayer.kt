@@ -335,6 +335,11 @@ class BananaPlayer(
         exoPlayer.volume = volume.coerceIn(0f, 1f)
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        val clampedSpeed = speed.coerceIn(0.25f, 4.0f)
+        exoPlayer.setPlaybackSpeed(clampedSpeed)
+    }
+
     fun dispose() {
         stopProgressUpdates()
         scope.cancel()

@@ -26,6 +26,7 @@ class BananaPlayerController extends ChangeNotifier {
   Duration _duration = Duration.zero;
   Duration _bufferedPosition = Duration.zero;
   List<VideoQuality> _videoQualities = const [];
+  double _playbackSpeed = 1.0;
   String? _errorMessage;
   bool _isDisposed = false;
 
@@ -34,6 +35,9 @@ class BananaPlayerController extends ChangeNotifier {
 
   /// Whether the player has been successfully created and has a valid texture.
   bool get isInitialized => _textureId != null && !_isDisposed;
+
+  /// Current playback speed multiplier (e.g. 1.0 = normal, 1.5 = 1.5x, 2.0 = 2x).
+  double get playbackSpeed => _playbackSpeed;
 
   /// The current state of playback (`idle`, `buffering`, `ready`, `ended`).
   PlaybackState get playbackState => _playbackState;
@@ -62,7 +66,10 @@ class BananaPlayerController extends ChangeNotifier {
   }
 
   /// Whether the current media is a live stream or indeterminate duration.
-  bool get isLive => _duration == Duration.zero || _duration.isNegative;
+  bool get isLive =>
+      _playbackState != PlaybackState.buffering &&
+      _duration <= Duration.zero &&
+      _position > Duration.zero;
 
   /// Last error message, if any.
   String? get errorMessage => _errorMessage;
@@ -153,7 +160,8 @@ class BananaPlayerController extends ChangeNotifier {
   /// Starts playback. Restarts from the beginning if the video has ended.
   Future<void> play() async {
     if (isInitialized) {
-      if (_playbackState == PlaybackState.ended) {
+      if (_playbackState == PlaybackState.ended ||
+          (_duration > Duration.zero && (_duration - _position).inMilliseconds.abs() < 250)) {
         await seekTo(Duration.zero);
       }
       await _hostApi.play(_textureId!);
@@ -224,6 +232,17 @@ class BananaPlayerController extends ChangeNotifier {
     if (isInitialized) {
       await _hostApi.setVideoQuality(_textureId!, qualityId);
       await getVideoQualities();
+    }
+  }
+
+  /// Sets the playback speed multiplier (e.g. 0.5, 0.75, 1.0, 1.25, 1.5, 2.0).
+  /// Speeds are clamped between 0.25x and 4.0x.
+  Future<void> setPlaybackSpeed(double speed) async {
+    final clamped = speed.clamp(0.25, 4.0);
+    _playbackSpeed = clamped;
+    notifyListeners();
+    if (isInitialized) {
+      await _hostApi.setPlaybackSpeed(_textureId!, clamped);
     }
   }
 

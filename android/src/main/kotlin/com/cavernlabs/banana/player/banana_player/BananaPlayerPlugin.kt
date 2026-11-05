@@ -75,6 +75,10 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
         players[textureId]?.setVideoQuality(qualityId)
     }
 
+    override fun setPlaybackSpeed(textureId: Long, speed: Double) {
+        players[textureId]?.setPlaybackSpeed(speed.toFloat())
+    }
+
     override fun dispose(textureId: Long) {
         players.remove(textureId)?.dispose()
     }

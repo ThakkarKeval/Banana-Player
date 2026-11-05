@@ -370,6 +370,7 @@ protocol BananaPlayerHostApi {
   func getPosition(textureId: Int64) throws -> Int64
   func getVideoQualities(textureId: Int64) throws -> [VideoQuality]
   func setVideoQuality(textureId: Int64, qualityId: String) throws
+  func setPlaybackSpeed(textureId: Int64, speed: Double) throws
   func dispose(textureId: Int64) throws
 }
 
@@ -534,6 +535,22 @@ class BananaPlayerHostApiSetup {
       }
     } else {
       setVideoQualityChannel.setMessageHandler(nil)
+    }
+    let setPlaybackSpeedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setPlaybackSpeed\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setPlaybackSpeedChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        let speedArg = args[1] as! Double
+        do {
+          try api.setPlaybackSpeed(textureId: textureIdArg, speed: speedArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setPlaybackSpeedChannel.setMessageHandler(nil)
     }
     let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

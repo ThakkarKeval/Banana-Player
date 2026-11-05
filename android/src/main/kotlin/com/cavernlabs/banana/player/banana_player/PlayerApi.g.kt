@@ -376,6 +376,7 @@ interface BananaPlayerHostApi {
   fun getPosition(textureId: Long): Long
   fun getVideoQualities(textureId: Long): List<VideoQuality>
   fun setVideoQuality(textureId: Long, qualityId: String)
+  fun setPlaybackSpeed(textureId: Long, speed: Double)
   fun dispose(textureId: Long)
 
   companion object {
@@ -557,6 +558,25 @@ interface BananaPlayerHostApi {
             val qualityIdArg = args[1] as String
             val wrapped: List<Any?> = try {
               api.setVideoQuality(textureIdArg, qualityIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setPlaybackSpeed$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val speedArg = args[1] as Double
+            val wrapped: List<Any?> = try {
+              api.setPlaybackSpeed(textureIdArg, speedArg)
               listOf(null)
             } catch (exception: Throwable) {
               PlayerApiPigeonUtils.wrapError(exception)

@@ -234,9 +234,40 @@ class BananaSeekBar extends StatefulWidget {
   State<BananaSeekBar> createState() => _BananaSeekBarState();
 }
 
-class _BananaSeekBarState extends State<BananaSeekBar> {
+class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserver {
   bool _isDragging = false;
   Duration _dragPosition = Duration.zero;
+  int _activePointerId = -1;
+
+  bool get _isEffectivelyDragging => _isDragging && _activePointerId != -1;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      _cancelDrag();
+    }
+  }
+
+  void _cancelDrag() {
+    if (_isDragging || _activePointerId != -1) {
+      setState(() {
+        _isDragging = false;
+        _activePointerId = -1;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,14 +276,15 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
       builder: (context, _) {
         final duration = widget.controller.duration;
         final isLive = widget.controller.isLive;
-        final position = _isDragging ? _dragPosition : widget.controller.position;
+        final isDragging = _isEffectivelyDragging;
+        final position = isDragging ? _dragPosition : widget.controller.position;
         final buffered = widget.controller.bufferedPosition;
 
         final value = BananaSeekBarValue(
           position: position,
           duration: duration,
           bufferedPosition: buffered,
-          isDragging: _isDragging,
+          isDragging: isDragging,
           isLive: isLive,
         );
 
@@ -279,44 +311,6 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
           fontFeatures: const [FontFeature.tabularFigures()],
         );
 
-    // Live Stream view
-    if (value.isLive) {
-      return Padding(
-        padding: widget.padding,
-        child: Row(
-          children: [
-            if (widget.leading != null) ...[
-              widget.leading!,
-              const SizedBox(width: 8),
-            ],
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: Colors.redAccent,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'LIVE STREAM',
-              style: labelStyle.copyWith(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const Spacer(),
-            Text(_formatDuration(value.position), style: labelStyle),
-            if (widget.trailing != null) ...[
-              const SizedBox(width: 8),
-              widget.trailing!,
-            ],
-          ],
-        ),
-      );
-    }
-
     final activeColor = widget.activeTrackColor ?? theme.colorScheme.primary;
     final inactiveColor = widget.inactiveTrackColor ?? Colors.white.withValues(alpha: 0.15);
     final bufferedColor = widget.bufferedTrackColor ?? Colors.white.withValues(alpha: 0.35);
@@ -324,19 +318,18 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
 
     return Padding(
       padding: widget.padding,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Row containing optional leading, interactive track, and optional trailing
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (widget.leading != null) ...[
-                widget.leading!,
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                child: _buildInteractiveTrackArea(
+          if (widget.leading != null) ...[
+            widget.leading!,
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildInteractiveTrackArea(
                   context: context,
                   value: value,
                   activeColor: activeColor,
@@ -344,28 +337,49 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
                   bufferedColor: bufferedColor,
                   thumbColor: thumbColor,
                 ),
-              ),
-              if (widget.trailing != null) ...[
-                const SizedBox(width: 8),
-                widget.trailing!,
-              ],
-            ],
-          ),
-
-          // Time labels area
-          if (widget.timeLabel != null)
-            widget.timeLabel!
-          else if (widget.timeLabelBuilder != null)
-            _buildValidatedTimeLabel(context, value)
-          else if (widget.showTimeLabels) ...[
-            const SizedBox(height: 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_formatDuration(value.position), style: labelStyle),
-                Text(_formatDuration(value.duration), style: labelStyle),
+                if (widget.timeLabel != null)
+                  widget.timeLabel!
+                else if (widget.timeLabelBuilder != null)
+                  _buildValidatedTimeLabel(context, value)
+                else if (widget.showTimeLabels) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_formatDuration(value.position), style: labelStyle),
+                      if (value.isLive)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'LIVE',
+                              style: labelStyle.copyWith(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(_formatDuration(value.duration), style: labelStyle),
+                    ],
+                  ),
+                ],
               ],
             ),
+          ),
+          if (widget.trailing != null) ...[
+            const SizedBox(width: 8),
+            widget.trailing!,
           ],
         ],
       ),
@@ -389,6 +403,9 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
 
         // Custom or default thumb widget
         Widget thumbWidget;
+        final thumbRadius = widget.customThumb != null ? 11.0 : widget.thumbRadius;
+        final thumbSize = thumbRadius * 2;
+
         if (widget.customThumb != null) {
           thumbWidget = widget.customThumb!;
         } else if (widget.thumbBuilder != null) {
@@ -397,8 +414,8 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
         } else {
           // Default sleek circular thumb with shadow and tap glow
           thumbWidget = Container(
-            width: widget.thumbRadius * 2,
-            height: widget.thumbRadius * 2,
+            width: thumbSize,
+            height: thumbSize,
             decoration: BoxDecoration(
               color: thumbColor,
               shape: BoxShape.circle,
@@ -457,7 +474,6 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
         }
 
         // Calculate thumb horizontal position
-        final thumbSize = widget.thumbRadius * 2;
         final thumbLeft = (totalWidth * progressFraction - (thumbSize / 2))
             .clamp(0.0, totalWidth > thumbSize ? totalWidth - thumbSize : 0.0);
 
@@ -474,7 +490,7 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
 
         void commitSeek(double localX) {
           if (durationMs <= 0 || totalWidth <= 0) {
-            setState(() => _isDragging = false);
+            _cancelDrag();
             return;
           }
           final fraction = (localX / totalWidth).clamp(0.0, 1.0);
@@ -483,63 +499,91 @@ class _BananaSeekBarState extends State<BananaSeekBar> {
           widget.controller.seekTo(targetDuration);
           widget.onSeek?.call(targetDuration);
           widget.onScrubEnd?.call(targetDuration);
-          setState(() {
-            _isDragging = false;
-          });
+          _cancelDrag();
         }
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (details) {
-            if (durationMs <= 0) return;
-            setState(() {
-              _isDragging = true;
-            });
-            updateSeek(details.localPosition.dx);
-            widget.onScrubStart?.call(_dragPosition);
+        const double interactiveAreaHeight = 36.0;
+
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (event) {
+            _activePointerId = event.pointer;
           },
-          onHorizontalDragUpdate: (details) {
-            updateSeek(details.localPosition.dx);
-          },
-          onHorizontalDragEnd: (details) {
-            if (_isDragging) {
-              widget.controller.seekTo(_dragPosition);
-              widget.onSeek?.call(_dragPosition);
-              widget.onScrubEnd?.call(_dragPosition);
-              setState(() {
-                _isDragging = false;
-              });
+          onPointerUp: (event) {
+            if (_activePointerId == event.pointer) {
+              if (_isDragging) {
+                commitSeek(event.localPosition.dx);
+              } else {
+                _cancelDrag();
+              }
             }
           },
-          onTapDown: (details) {
-            commitSeek(details.localPosition.dx);
+          onPointerCancel: (event) {
+            if (_activePointerId == event.pointer) {
+              if (_isDragging) {
+                commitSeek(event.localPosition.dx);
+              } else {
+                _cancelDrag();
+              }
+            }
           },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.centerLeft,
-              children: [
-                // Track bar
-                trackWidget,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              if (durationMs <= 0) return;
+              setState(() {
+                _isDragging = true;
+              });
+              updateSeek(details.localPosition.dx);
+              widget.onScrubStart?.call(_dragPosition);
+            },
+            onHorizontalDragUpdate: (details) {
+              updateSeek(details.localPosition.dx);
+            },
+            onHorizontalDragEnd: (details) {
+              if (_isDragging) {
+                commitSeek(details.localPosition.dx);
+              } else {
+                _cancelDrag();
+              }
+            },
+            onHorizontalDragCancel: () {
+              _cancelDrag();
+            },
+            onTapUp: (details) {
+              commitSeek(details.localPosition.dx);
+            },
+            child: SizedBox(
+              height: interactiveAreaHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.centerLeft,
+                children: [
+                  // Track bar vertically centered
+                  Center(child: trackWidget),
 
-                // Optional custom overlay (e.g. chapter markers)
-                if (widget.overlay != null) widget.overlay!,
+                  // Optional custom overlay (e.g. chapter markers)
+                  if (widget.overlay != null) widget.overlay!,
 
-                // Scrub preview tooltip when dragging
-                if (_isDragging && widget.scrubTooltipBuilder != null)
+                  // Thumb widget vertically centered
                   Positioned(
-                    left: thumbLeft - 20,
-                    top: -30,
-                    child: widget.scrubTooltipBuilder!(context, _dragPosition),
+                    left: thumbLeft,
+                    top: (interactiveAreaHeight - thumbSize) / 2,
+                    child: thumbWidget,
                   ),
 
-                // Thumb widget
-                Positioned(
-                  left: thumbLeft,
-                  child: thumbWidget,
-                ),
-              ],
+                  // Scrub preview tooltip when dragging, cleanly centered above thumb
+                  if (_isEffectivelyDragging && widget.scrubTooltipBuilder != null)
+                    Positioned(
+                      left: thumbLeft + (thumbSize / 2),
+                      top: (interactiveAreaHeight - thumbSize) / 2 - 6,
+                      child: FractionalTranslation(
+                        translation: const Offset(-0.5, -1.0),
+                        child: widget.scrubTooltipBuilder!(context, _dragPosition),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         );

@@ -69,6 +69,8 @@ abstract class BananaPlayerHostApi {
 
   void setVideoQuality(int textureId, String qualityId);
 
+  void setPlaybackSpeed(int textureId, double speed);
+
   void dispose(int textureId);
 }
 
