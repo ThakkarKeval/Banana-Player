@@ -5,13 +5,13 @@
 Pod::Spec.new do |s|
   s.name             = 'banana_player'
   s.version          = '0.0.1'
-  s.summary          = 'A exoplayer wrapper library for your flutter projects'
+  s.summary          = 'A high-performance video player for Flutter using AVPlayer on iOS.'
   s.description      = <<-DESC
-A exoplayer wrapper library for your flutter projects
+A high-performance video player plugin for Flutter using native AVPlayer on iOS and ExoPlayer (Media3) on Android with HLS streaming, texture rendering, and quality selection.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/ThakkarKeval/Banana-Player'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Keval Thakkar' => 'thakkarkpt123@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'banana_player/Sources/banana_player/**/*'
   s.dependency 'Flutter'

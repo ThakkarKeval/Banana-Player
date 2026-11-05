@@ -14,51 +14,49 @@ void main() {
   });
 
   group('BananaSeekBar widget validation', () {
-    testWidgets('allows valid direct widgets (Row, Column, Icon, Container, Image)', (tester) async {
-      final controller = BananaPlayerController();
+    testWidgets(
+      'allows valid direct widgets (Row, Column, Icon, Container, Image)',
+      (tester) async {
+        final controller = BananaPlayerController();
 
-      // Passing valid direct widgets should not throw
-      final seekBar = MaterialApp(
-        home: Scaffold(
-          body: BananaSeekBar(
-            controller: controller,
-            leading: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.play_circle_fill),
-                Text('0:00'),
-              ],
-            ),
-            trailing: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.fullscreen),
-              ],
-            ),
-            customThumb: Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                color: Colors.amber,
-                shape: BoxShape.circle,
+        // Passing valid direct widgets should not throw
+        final seekBar = MaterialApp(
+          home: Scaffold(
+            body: BananaSeekBar(
+              controller: controller,
+              leading: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Icon(Icons.play_circle_fill), Text('0:00')],
               ),
-            ),
-            customTrack: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(3),
+              trailing: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [Icon(Icons.fullscreen)],
+              ),
+              customThumb: Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  color: Colors.amber,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              customTrack: Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpWidget(seekBar);
-      expect(find.byType(BananaSeekBar), findsOneWidget);
-      expect(find.byIcon(Icons.play_circle_fill), findsOneWidget);
-      expect(find.byIcon(Icons.fullscreen), findsOneWidget);
-    });
+        await tester.pumpWidget(seekBar);
+        expect(find.byType(BananaSeekBar), findsOneWidget);
+        expect(find.byIcon(Icons.play_circle_fill), findsOneWidget);
+        expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+      },
+    );
 
     test('rejects direct ListView with ArgumentError', () {
       final controller = BananaPlayerController();
@@ -94,7 +92,10 @@ void main() {
       expect(
         () => BananaSeekBar(
           controller: controller,
-          trailing: GridView.count(crossAxisCount: 2, children: const [Text('item')]),
+          trailing: GridView.count(
+            crossAxisCount: 2,
+            children: const [Text('item')],
+          ),
         ),
         throwsA(isA<ArgumentError>()),
       );
@@ -112,7 +113,9 @@ void main() {
       );
     });
 
-    testWidgets('rejects builder returning ListView during pump', (tester) async {
+    testWidgets('rejects builder returning ListView during pump', (
+      tester,
+    ) async {
       final controller = BananaPlayerController();
 
       final seekBar = MaterialApp(
@@ -130,30 +133,33 @@ void main() {
       expect(tester.takeException(), isA<ArgumentError>());
     });
 
-    testWidgets('resets dragging state when app lifecycle pauses or goes inactive', (tester) async {
-      final controller = BananaPlayerController();
-      BananaSeekBarValue? capturedValue;
+    testWidgets(
+      'resets dragging state when app lifecycle pauses or goes inactive',
+      (tester) async {
+        final controller = BananaPlayerController();
+        BananaSeekBarValue? capturedValue;
 
-      final seekBar = MaterialApp(
-        home: Scaffold(
-          body: BananaSeekBar(
-            controller: controller,
-            builder: (context, value, defaultLayout) {
-              capturedValue = value;
-              return defaultLayout;
-            },
+        final seekBar = MaterialApp(
+          home: Scaffold(
+            body: BananaSeekBar(
+              controller: controller,
+              builder: (context, value, defaultLayout) {
+                capturedValue = value;
+                return defaultLayout;
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpWidget(seekBar);
-      expect(capturedValue?.isDragging, false);
+        await tester.pumpWidget(seekBar);
+        expect(capturedValue?.isDragging, false);
 
-      // Simulate app pausing (e.g. screenshot taken or app switched)
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-      await tester.pump();
+        // Simulate app pausing (e.g. screenshot taken or app switched)
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
 
-      expect(capturedValue?.isDragging, false);
-    });
+        expect(capturedValue?.isDragging, false);
+      },
+    );
   });
 }

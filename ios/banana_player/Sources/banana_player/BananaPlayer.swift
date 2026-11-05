@@ -7,8 +7,8 @@ import Foundation
 ///
 /// Implements [FlutterTexture] to deliver decoded CVPixelBuffers directly
 /// to Flutter's Metal texture registry with zero PlatformView overhead.
-public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
-  public let textureId: Int64
+class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
+  private(set) var textureId: Int64 = 0
 
   private let registry: FlutterTextureRegistry
   private let flutterApi: BananaPlayerFlutterApi
@@ -29,7 +29,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
   private var selectedQualityId: String?
   private var isDisposed = false
 
-  public init(
+  init(
     config: PlayerConfig,
     registry: FlutterTextureRegistry,
     flutterApi: BananaPlayerFlutterApi
@@ -38,12 +38,9 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     self.flutterApi = flutterApi
     self.player = AVPlayer()
 
-    // Assign temporary textureId first, then register self
-    var registeredId: Int64 = 0
     super.init()
 
-    registeredId = registry.register(self)
-    self.textureId = registeredId
+    self.textureId = registry.register(self)
 
     configureAudioSession()
 
@@ -112,11 +109,11 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     self.videoOutput = output
   }
 
-  public func outputMediaDataWillChange(_ sender: AVPlayerItemOutput) {
+  func outputMediaDataWillChange(_ sender: AVPlayerItemOutput) {
     registry.textureFrameAvailable(textureId)
   }
 
-  public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
+  func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
     guard let videoOutput = videoOutput else {
       if let latest = latestPixelBuffer {
         return Unmanaged.passRetained(latest)
@@ -324,7 +321,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
 
   // MARK: - Player Controls
 
-  public func play() {
+  func play() {
     if getPosition() >= getDuration() && getDuration() > 0 {
       seekTo(positionMs: 0)
     }
@@ -335,12 +332,12 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     startDisplayLink()
   }
 
-  public func pause() {
+  func pause() {
     player.pause()
     stopDisplayLink()
   }
 
-  public func setSource(url: String) {
+  func setSource(url: String) {
     stopDisplayLink()
     removeItemObservers()
     latestPixelBuffer = nil
@@ -351,7 +348,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     loadMedia(url: url, autoPlay: true)
   }
 
-  public func seekTo(positionMs: Int64) {
+  func seekTo(positionMs: Int64) {
     let targetTime = CMTime(value: positionMs, timescale: 1000)
     player.seek(to: targetTime, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
       guard let self = self else { return }
@@ -360,11 +357,11 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     }
   }
 
-  public func setVolume(_ volume: Float) {
+  func setVolume(_ volume: Float) {
     player.volume = max(0.0, min(1.0, volume))
   }
 
-  public func setPlaybackSpeed(_ speed: Float) {
+  func setPlaybackSpeed(_ speed: Float) {
     let clamped = max(0.25, min(4.0, speed))
     self.playbackSpeed = clamped
     if player.timeControlStatus == .playing {
@@ -372,7 +369,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     }
   }
 
-  public func getDuration() -> Int64 {
+  func getDuration() -> Int64 {
     guard let item = currentItem else { return 0 }
     let dur = item.duration
     if dur.isNumeric && !dur.isIndefinite {
@@ -382,7 +379,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     return 0
   }
 
-  public func getPosition() -> Int64 {
+  func getPosition() -> Int64 {
     let current = player.currentTime()
     if current.isNumeric && !current.isIndefinite {
       let seconds = CMTimeGetSeconds(current)
@@ -391,7 +388,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     return 0
   }
 
-  public func getBufferedPosition() -> Int64 {
+  func getBufferedPosition() -> Int64 {
     guard let item = currentItem else { return 0 }
     guard let range = item.loadedTimeRanges.first?.timeRangeValue else { return 0 }
     let start = CMTimeGetSeconds(range.start)
@@ -402,12 +399,13 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
 
   // MARK: - Video Qualities (HLS ABR)
 
-  public func getVideoQualities() -> [VideoQuality] {
+  func getVideoQualities() -> [VideoQuality] {
     guard let item = currentItem else { return [] }
     var qualities: [VideoQuality] = []
 
     if #available(iOS 15.0, *) {
-      let variants = item.asset.variants
+      guard let urlAsset = item.asset as? AVURLAsset else { return [] }
+      let variants = urlAsset.variants
       for (index, variant) in variants.enumerated() {
         let bitrate = Int64(variant.peakBitRate ?? variant.averageBitRate ?? 0)
         let size = variant.videoAttributes?.presentationSize ?? .zero
@@ -434,7 +432,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
     return qualities
   }
 
-  public func setVideoQuality(qualityId: String) {
+  func setVideoQuality(qualityId: String) {
     selectedQualityId = qualityId
     guard let item = currentItem else { return }
 
@@ -444,10 +442,11 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
         item.preferredMaximumResolution = .zero
       }
     } else if #available(iOS 15.0, *),
+      let urlAsset = item.asset as? AVURLAsset,
       let index = Int(qualityId),
-      index < item.asset.variants.count
+      index < urlAsset.variants.count
     {
-      let variant = item.asset.variants[index]
+      let variant = urlAsset.variants[index]
       if let peak = variant.peakBitRate {
         item.preferredPeakBitRate = peak
       }
@@ -460,7 +459,7 @@ public class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDeleg
 
   // MARK: - Disposal
 
-  public func dispose() {
+  func dispose() {
     guard !isDisposed else { return }
     isDisposed = true
 

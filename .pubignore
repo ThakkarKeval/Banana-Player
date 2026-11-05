@@ -1,0 +1,16 @@
+# Build output and caches
+/build/
+.dart_tool/
+
+# Exclude platforms not registered in pubspec.yaml
+/windows/
+/linux/
+/macos/
+
+# Pigeon generation source schema
+/pigeons/
+
+# IDE and build caches
+.idea/
+.gradle/
+*.iml

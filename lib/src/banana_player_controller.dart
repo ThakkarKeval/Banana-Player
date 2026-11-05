@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
 import 'player_api.g.dart';
 
 /// Controller managing a native video player instance (ExoPlayer on Android, AVPlayer on iOS).
@@ -82,13 +84,11 @@ class BananaPlayerController extends ChangeNotifier {
 
   final StreamController<Duration> _positionStreamController =
       StreamController<Duration>.broadcast();
-  Stream<Duration> get onPositionChanged =>
-      _positionStreamController.stream;
+  Stream<Duration> get onPositionChanged => _positionStreamController.stream;
 
   final StreamController<Duration> _durationStreamController =
       StreamController<Duration>.broadcast();
-  Stream<Duration> get onDurationChanged =>
-      _durationStreamController.stream;
+  Stream<Duration> get onDurationChanged => _durationStreamController.stream;
 
   final StreamController<Duration> _bufferedStreamController =
       StreamController<Duration>.broadcast();
@@ -140,7 +140,9 @@ class BananaPlayerController extends ChangeNotifier {
   /// Changes the media source URL without destroying and recreating the surface or decoder.
   Future<void> setSource(String url) async {
     if (_isDisposed) {
-      throw StateError('Cannot set source on a disposed BananaPlayerController');
+      throw StateError(
+        'Cannot set source on a disposed BananaPlayerController',
+      );
     }
     _errorMessage = null;
     _position = Duration.zero;
@@ -161,7 +163,8 @@ class BananaPlayerController extends ChangeNotifier {
   Future<void> play() async {
     if (isInitialized) {
       if (_playbackState == PlaybackState.ended ||
-          (_duration > Duration.zero && (_duration - _position).inMilliseconds.abs() < 250)) {
+          (_duration > Duration.zero &&
+              (_duration - _position).inMilliseconds.abs() < 250)) {
         await seekTo(Duration.zero);
       }
       await _hostApi.play(_textureId!);
@@ -276,12 +279,19 @@ class BananaPlayerController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _handlePositionChanged(int positionMs, int durationMs, int bufferedPositionMs) {
+  void _handlePositionChanged(
+    int positionMs,
+    int durationMs,
+    int bufferedPositionMs,
+  ) {
     final newPos = Duration(milliseconds: positionMs);
     final newDur = Duration(milliseconds: durationMs);
     final newBuf = Duration(milliseconds: bufferedPositionMs);
 
-    final bool changed = _position != newPos || _duration != newDur || _bufferedPosition != newBuf;
+    final bool changed =
+        _position != newPos ||
+        _duration != newDur ||
+        _bufferedPosition != newBuf;
 
     _position = newPos;
     if (newDur > Duration.zero) {
@@ -321,7 +331,12 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
   }
 
   @override
-  void onPositionChanged(int textureId, int positionMs, int durationMs, int bufferedPositionMs) {
+  void onPositionChanged(
+    int textureId,
+    int positionMs,
+    int durationMs,
+    int bufferedPositionMs,
+  ) {
     BananaPlayerController._activeControllers[textureId]
         ?._handlePositionChanged(positionMs, durationMs, bufferedPositionMs);
   }
@@ -334,7 +349,9 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
 
   @override
   void onError(int textureId, String errorCode, String errorMessage) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handleError(errorCode, errorMessage);
+    BananaPlayerController._activeControllers[textureId]?._handleError(
+      errorCode,
+      errorMessage,
+    );
   }
 }

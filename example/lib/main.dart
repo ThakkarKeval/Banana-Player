@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:banana_player/banana_player.dart';
 
+import 'strings.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // 1. Block rotation to portrait only
@@ -16,13 +18,13 @@ void main() async {
 /// Authentic Banana Player Theme
 class BananaTheme {
   static const Color primaryYellow = Color(0xFFFFD200); // Ripe Banana Yellow
-  static const Color brightYellow = Color(0xFFFFE033);  // Electric Banana Yellow
-  static const Color amberGold = Color(0xFFFFA000);     // Warm Amber Gold
-  static const Color deepNavy = Color(0xFF142036);      // Cinema Deep Blue
-  static const Color darkCanvas = Color(0xFF0F0F14);    // Studio Canvas Dark
-  static const Color cardSurface = Color(0xFF181822);   // Card Surface
+  static const Color brightYellow = Color(0xFFFFE033); // Electric Banana Yellow
+  static const Color amberGold = Color(0xFFFFA000); // Warm Amber Gold
+  static const Color deepNavy = Color(0xFF142036); // Cinema Deep Blue
+  static const Color darkCanvas = Color(0xFF0F0F14); // Studio Canvas Dark
+  static const Color cardSurface = Color(0xFF181822); // Card Surface
   static const Color cardSurfaceLight = Color(0xFF232330); // Raised Surface
-  static const Color alertRed = Color(0xFFE53935);      // Mute / Error Red
+  static const Color alertRed = Color(0xFFE53935); // Mute / Error Red
 }
 
 class MediaPreset {
@@ -43,24 +45,24 @@ class MediaPreset {
 
 const List<MediaPreset> _kPresets = [
   MediaPreset(
-    title: 'Flutter Butterfly',
-    subtitle: 'Nature Demo • MP4',
-    tag: 'MP4 HD',
-    url: 'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
+    title: AppStrings.presetButterflyTitle,
+    subtitle: AppStrings.presetButterflySubtitle,
+    tag: AppStrings.presetButterflyTag,
+    url: AppStrings.presetButterflyUrl,
     icon: Icons.eco_rounded,
   ),
   MediaPreset(
-    title: 'Apple Advanced HLS',
-    subtitle: 'Multi-rate 60/30 FPS • HLS fMP4',
-    tag: 'HLS 60FPS',
-    url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
+    title: AppStrings.presetAppleTitle,
+    subtitle: AppStrings.presetAppleSubtitle,
+    tag: AppStrings.presetAppleTag,
+    url: AppStrings.presetAppleUrl,
     icon: Icons.speed_rounded,
   ),
   MediaPreset(
-    title: 'Mux Adaptive Stream',
-    subtitle: 'Multi-bitrate Stream • HLS',
-    tag: 'HLS LIVE',
-    url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    title: AppStrings.presetMuxTitle,
+    subtitle: AppStrings.presetMuxSubtitle,
+    tag: AppStrings.presetMuxTag,
+    url: AppStrings.presetMuxUrl,
     icon: Icons.stream_rounded,
   ),
 ];
@@ -72,7 +74,7 @@ class BananaPlayerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Banana Player',
+      title: AppStrings.appTitle,
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: BananaTheme.darkCanvas,
@@ -102,7 +104,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   bool _isSwitchingPreset = false;
 
   String _formatDuration(Duration duration) {
-    if (duration < Duration.zero) return '0:00';
+    if (duration < Duration.zero) return AppStrings.zeroDuration;
     final minutes = duration.inMinutes.remainder(60);
     final seconds = duration.inSeconds.remainder(60);
     final secondsStr = seconds.toString().padLeft(2, '0');
@@ -210,7 +212,11 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               ),
             ],
           ),
-          child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 26),
+          child: const Icon(
+            Icons.play_arrow_rounded,
+            color: Colors.black,
+            size: 26,
+          ),
         ),
         const SizedBox(width: 12),
         Column(
@@ -219,7 +225,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
             Row(
               children: [
                 const Text(
-                  'BANANA',
+                  AppStrings.brandBanana,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -229,7 +235,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'PLAYER',
+                  AppStrings.brandPlayer,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -242,7 +248,10 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -251,7 +260,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     ),
                   ),
                   child: const Text(
-                    'CINEMA EDITION',
+                    AppStrings.cinemaEdition,
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
@@ -262,7 +271,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 ),
                 const SizedBox(width: 6),
                 const Text(
-                  'ExoPlayer Native Engine',
+                  AppStrings.playerViewPlugin,
                   style: TextStyle(fontSize: 11, color: Colors.white54),
                 ),
               ],
@@ -311,9 +320,11 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Preparing Stream...',
+                        AppStrings.preparingStream,
                         style: TextStyle(
-                          color: BananaTheme.primaryYellow.withValues(alpha: 0.8),
+                          color: BananaTheme.primaryYellow.withValues(
+                            alpha: 0.8,
+                          ),
                           fontSize: 13,
                         ),
                       ),
@@ -344,7 +355,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Loading ${currentPreset.title}...',
+                                  AppStrings.loadingPreset(currentPreset.title),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -402,7 +413,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
 
   Widget _buildSpeedBadge() {
     final speed = _controller.playbackSpeed;
-    final speedText = speed == 1.0 ? '1.0x' : '${speed.toStringAsFixed(speed % 1 == 0 ? 0 : 2)}x';
+    final speedText = AppStrings.speedLabel(speed);
 
     return InkWell(
       onTap: _controller.isInitialized ? () => _showSpeedPicker(context) : null,
@@ -475,10 +486,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.speed_rounded, color: BananaTheme.primaryYellow, size: 24),
+                    const Icon(
+                      Icons.speed_rounded,
+                      color: BananaTheme.primaryYellow,
+                      size: 24,
+                    ),
                     const SizedBox(width: 10),
                     const Text(
-                      'Playback Speed',
+                      AppStrings.playbackSpeed,
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -487,13 +502,20 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
+                        color: BananaTheme.primaryYellow.withValues(
+                          alpha: 0.15,
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${currentSpeed == 1.0 ? '1.0' : currentSpeed}x ACTIVE',
+                        AppStrings.speedActive(
+                          currentSpeed == 1.0 ? '1.0' : '$currentSpeed',
+                        ),
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
@@ -510,12 +532,15 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       mainAxisSize: MainAxisSize.min,
                       children: speeds.map((speed) {
                         final isSelected = (currentSpeed - speed).abs() < 0.01;
-                        final label = speed == 1.0 ? '1.0x • Normal' : '${speed}x';
+                        final label = AppStrings.speedPickerItem(speed);
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 6),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 2,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
@@ -525,11 +550,17 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                               ),
                             ),
                             tileColor: isSelected
-                                ? BananaTheme.primaryYellow.withValues(alpha: 0.12)
+                                ? BananaTheme.primaryYellow.withValues(
+                                    alpha: 0.12,
+                                  )
                                 : BananaTheme.cardSurfaceLight,
                             leading: Icon(
-                              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                              color: isSelected ? BananaTheme.primaryYellow : Colors.white38,
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: isSelected
+                                  ? BananaTheme.primaryYellow
+                                  : Colors.white38,
                               size: 20,
                             ),
                             title: Text(
@@ -537,7 +568,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? BananaTheme.primaryYellow : Colors.white,
+                                color: isSelected
+                                    ? BananaTheme.primaryYellow
+                                    : Colors.white,
                               ),
                             ),
                             onTap: () {
@@ -561,7 +594,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
   Widget _buildQualityBadge() {
     final qualities = _controller.videoQualities;
     final selected = _controller.selectedQuality;
-    final String label = selected?.label ?? (qualities.isNotEmpty ? 'Auto' : 'HD');
+    final String label =
+        selected?.label ??
+        (qualities.isNotEmpty ? AppStrings.qualityAuto : AppStrings.qualityHd);
 
     return InkWell(
       onTap: qualities.isNotEmpty ? () => _showQualityPicker(context) : null,
@@ -625,10 +660,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.high_quality_rounded, color: BananaTheme.primaryYellow, size: 24),
+                      const Icon(
+                        Icons.high_quality_rounded,
+                        color: BananaTheme.primaryYellow,
+                        size: 24,
+                      ),
                       const SizedBox(width: 10),
                       const Text(
-                        'Video Stream Quality',
+                        AppStrings.videoStreamQuality,
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -637,13 +676,18 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                          color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
+                          color: BananaTheme.primaryYellow.withValues(
+                            alpha: 0.15,
+                          ),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'HLS ABR',
+                          AppStrings.hlsAbr,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
@@ -659,22 +703,33 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: qualities.map((quality) {
-                          final isCurrent = quality.id == selected?.id ||
-                              (selected == null && quality.id == 'auto');
+                          final isCurrent =
+                              quality.id == selected?.id ||
+                              (selected == null &&
+                                  quality.id == AppStrings.qualityAutoId);
                           final bitrateText = quality.bitrate > 0
-                              ? ' • ${(quality.bitrate / 1000000).toStringAsFixed(1)} Mbps'
+                              ? AppStrings.bitrateMbps(
+                                  quality.bitrate.toDouble(),
+                                )
                               : '';
-                          final fpsText = (quality.frameRate != null && quality.frameRate! > 0)
-                              ? ' • ${quality.frameRate!.round()} fps'
+                          final fpsText =
+                              (quality.frameRate != null &&
+                                  quality.frameRate! > 0)
+                              ? AppStrings.fps(quality.frameRate!.round())
                               : '';
                           final resolutionText = quality.height > 0
                               ? '${quality.width}x${quality.height}'
-                              : (quality.id == 'auto' ? 'Adaptive bitrate based on network' : '');
+                              : (quality.id == AppStrings.qualityAutoId
+                                    ? AppStrings.adaptiveBitrateDesc
+                                    : '');
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 2,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
@@ -684,48 +739,75 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                                 ),
                               ),
                               tileColor: isCurrent
-                                  ? BananaTheme.primaryYellow.withValues(alpha: 0.12)
+                                  ? BananaTheme.primaryYellow.withValues(
+                                      alpha: 0.12,
+                                    )
                                   : BananaTheme.cardSurfaceLight,
                               leading: Icon(
-                                isCurrent ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                color: isCurrent ? BananaTheme.primaryYellow : Colors.white38,
+                                isCurrent
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: isCurrent
+                                    ? BananaTheme.primaryYellow
+                                    : Colors.white38,
                                 size: 20,
                               ),
                               title: Text(
-                                quality.label ?? (quality.height > 0 ? '${quality.height}p' : quality.id),
+                                quality.label ??
+                                    (quality.height > 0
+                                        ? '${quality.height}p'
+                                        : quality.id),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? BananaTheme.primaryYellow : Colors.white,
+                                  color: isCurrent
+                                      ? BananaTheme.primaryYellow
+                                      : Colors.white,
                                 ),
                               ),
                               subtitle: resolutionText.isNotEmpty
                                   ? Text(
                                       '$resolutionText$bitrateText$fpsText',
-                                      style: const TextStyle(fontSize: 12, color: Colors.white54),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white54,
+                                      ),
                                     )
                                   : null,
-                              trailing: (quality.frameRate != null && quality.frameRate! > 0)
+                              trailing:
+                                  (quality.frameRate != null &&
+                                      quality.frameRate! > 0)
                                   ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: isCurrent
-                                            ? BananaTheme.primaryYellow.withValues(alpha: 0.2)
-                                            : Colors.white.withValues(alpha: 0.08),
+                                            ? BananaTheme.primaryYellow
+                                                  .withValues(alpha: 0.2)
+                                            : Colors.white.withValues(
+                                                alpha: 0.08,
+                                              ),
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
                                           color: isCurrent
-                                              ? BananaTheme.primaryYellow.withValues(alpha: 0.4)
+                                              ? BananaTheme.primaryYellow
+                                                    .withValues(alpha: 0.4)
                                               : Colors.white12,
                                         ),
                                       ),
                                       child: Text(
-                                        '${quality.frameRate!.round()} FPS',
+                                        AppStrings.fpsBadge(
+                                          quality.frameRate!.round(),
+                                        ),
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 0.5,
-                                          color: isCurrent ? BananaTheme.primaryYellow : Colors.white70,
+                                          color: isCurrent
+                                              ? BananaTheme.primaryYellow
+                                              : Colors.white70,
                                         ),
                                       ),
                                     )
@@ -758,27 +840,27 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       case PlaybackState.ready:
         bg = BananaTheme.deepNavy.withValues(alpha: 0.85);
         dot = BananaTheme.brightYellow;
-        label = 'PLAYING';
+        label = AppStrings.statePlaying;
         break;
       case PlaybackState.buffering:
         bg = BananaTheme.amberGold.withValues(alpha: 0.85);
         dot = Colors.white;
-        label = 'BUFFERING';
+        label = AppStrings.stateBuffering;
         break;
       case PlaybackState.ended:
         bg = BananaTheme.alertRed.withValues(alpha: 0.85);
         dot = Colors.white;
-        label = 'ENDED (TAP PLAY)';
+        label = AppStrings.stateEnded;
         break;
       case PlaybackState.paused:
         bg = Colors.black54;
         dot = Colors.grey;
-        label = 'PAUSED';
+        label = AppStrings.statePaused;
         break;
       case PlaybackState.idle:
         bg = Colors.black54;
         dot = Colors.grey;
-        label = 'IDLE';
+        label = AppStrings.stateIdle;
         break;
     }
 
@@ -830,9 +912,7 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       decoration: BoxDecoration(
         color: BananaTheme.cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -842,7 +922,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _useCustomWidgets ? 'CUSTOM WIDGETS' : 'DEFAULT SEEKBAR VIEW',
+                _useCustomWidgets
+                    ? AppStrings.customWidgets
+                    : AppStrings.defaultSeekbarView,
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -851,25 +933,35 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 ),
               ),
               InkWell(
-                onTap: () => setState(() => _useCustomWidgets = !_useCustomWidgets),
+                onTap: () =>
+                    setState(() => _useCustomWidgets = !_useCustomWidgets),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: _useCustomWidgets
                         ? BananaTheme.amberGold.withValues(alpha: 0.2)
                         : Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: _useCustomWidgets ? BananaTheme.amberGold : Colors.white24,
+                      color: _useCustomWidgets
+                          ? BananaTheme.amberGold
+                          : Colors.white24,
                     ),
                   ),
                   child: Text(
-                    _useCustomWidgets ? 'Show Default View' : 'Try Custom Direct Widgets',
+                    _useCustomWidgets
+                        ? AppStrings.showDefaultView
+                        : AppStrings.tryCustomWidgets,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: _useCustomWidgets ? BananaTheme.primaryYellow : Colors.white70,
+                      color: _useCustomWidgets
+                          ? BananaTheme.primaryYellow
+                          : Colors.white70,
                     ),
                   ),
                 ),
@@ -939,10 +1031,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.hd_rounded, size: 14, color: BananaTheme.primaryYellow),
+                    Icon(
+                      Icons.hd_rounded,
+                      size: 14,
+                      color: BananaTheme.primaryYellow,
+                    ),
                     SizedBox(width: 3),
                     Text(
-                      '1080p',
+                      AppStrings.preview1080p,
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -958,7 +1054,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                 decoration: BoxDecoration(
                   color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: BananaTheme.primaryYellow.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: BananaTheme.primaryYellow.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Text(
                   '-${_formatDuration(_controller.duration > _controller.position ? _controller.duration - _controller.position : Duration.zero)}',
@@ -973,11 +1071,17 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               // Direct custom scrub tooltip floating above thumb
               scrubTooltipBuilder: (context, scrubPos) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: BananaTheme.deepNavy,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: BananaTheme.primaryYellow, width: 1.2),
+                    border: Border.all(
+                      color: BananaTheme.primaryYellow,
+                      width: 1.2,
+                    ),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black54,
@@ -1007,18 +1111,23 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               // Replay to 0s
               _buildCircleAction(
                 icon: Icons.replay_rounded,
-                tooltip: 'Replay (0s)',
-                onPressed: isInitialized ? () => _controller.seekTo(Duration.zero) : null,
+                tooltip: AppStrings.tooltipReplay,
+                onPressed: isInitialized
+                    ? () => _controller.seekTo(Duration.zero)
+                    : null,
               ),
 
               // Step backward 10s
               _buildCircleAction(
                 icon: Icons.replay_10_rounded,
-                tooltip: 'Rewind 10s',
+                tooltip: AppStrings.tooltipRewind10,
                 onPressed: isInitialized
                     ? () {
-                        final newPos = _controller.position - const Duration(seconds: 10);
-                        _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+                        final newPos =
+                            _controller.position - const Duration(seconds: 10);
+                        _controller.seekTo(
+                          newPos < Duration.zero ? Duration.zero : newPos,
+                        );
                       }
                     : null,
               ),
@@ -1043,14 +1152,20 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     gradient: LinearGradient(
                       colors: isEnded
                           ? [BananaTheme.alertRed, BananaTheme.amberGold]
-                          : [BananaTheme.brightYellow, BananaTheme.primaryYellow],
+                          : [
+                              BananaTheme.brightYellow,
+                              BananaTheme.primaryYellow,
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isEnded ? BananaTheme.alertRed : BananaTheme.primaryYellow)
-                            .withValues(alpha: 0.4),
+                        color:
+                            (isEnded
+                                    ? BananaTheme.alertRed
+                                    : BananaTheme.primaryYellow)
+                                .withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -1059,7 +1174,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   child: Icon(
                     isEnded
                         ? Icons.replay_rounded
-                        : (isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                        : (isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded),
                     color: isEnded ? Colors.white : Colors.black,
                     size: 36,
                   ),
@@ -1069,10 +1186,11 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               // Step forward 10s
               _buildCircleAction(
                 icon: Icons.forward_10_rounded,
-                tooltip: 'Forward 10s',
+                tooltip: AppStrings.tooltipForward10,
                 onPressed: isInitialized
                     ? () {
-                        final newPos = _controller.position + const Duration(seconds: 10);
+                        final newPos =
+                            _controller.position + const Duration(seconds: 10);
                         final maxDur = _controller.duration;
                         if (maxDur > Duration.zero && newPos > maxDur) {
                           _controller.seekTo(maxDur);
@@ -1085,8 +1203,12 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
 
               // Mute / Unmute Toggle
               _buildCircleAction(
-                icon: _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                tooltip: _isMuted ? 'Unmute' : 'Mute',
+                icon: _isMuted
+                    ? Icons.volume_off_rounded
+                    : Icons.volume_up_rounded,
+                tooltip: _isMuted
+                    ? AppStrings.tooltipUnmute
+                    : AppStrings.tooltipMute,
                 color: _isMuted ? BananaTheme.alertRed : null,
                 onPressed: isInitialized ? _toggleMute : null,
               ),
@@ -1124,10 +1246,14 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
       children: [
         Row(
           children: [
-            const Icon(Icons.movie_creation_outlined, color: BananaTheme.primaryYellow, size: 20),
+            const Icon(
+              Icons.movie_creation_outlined,
+              color: BananaTheme.primaryYellow,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             const Text(
-              'Select Stream',
+              AppStrings.selectStream,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -1140,10 +1266,12 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
               decoration: BoxDecoration(
                 color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: BananaTheme.primaryYellow.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: BananaTheme.primaryYellow.withValues(alpha: 0.4),
+                ),
               ),
               child: const Text(
-                'STREAM PRESETS',
+                AppStrings.streamPresets,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -1181,7 +1309,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: BananaTheme.primaryYellow.withValues(alpha: 0.15),
+                            color: BananaTheme.primaryYellow.withValues(
+                              alpha: 0.15,
+                            ),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -1214,19 +1344,27 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? BananaTheme.primaryYellow : Colors.white,
+                              color: isSelected
+                                  ? BananaTheme.primaryYellow
+                                  : Colors.white,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             preset.subtitle,
-                            style: const TextStyle(fontSize: 12, color: Colors.white54),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? BananaTheme.primaryYellow.withValues(alpha: 0.2)
@@ -1244,7 +1382,9 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.4,
-                          color: isSelected ? BananaTheme.primaryYellow : Colors.white70,
+                          color: isSelected
+                              ? BananaTheme.primaryYellow
+                              : Colors.white70,
                         ),
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'banana_player_controller.dart';
 
 /// Current state snapshot passed to [BananaSeekBar] builder functions.
@@ -35,7 +36,10 @@ class BananaSeekBarValue {
   /// Buffered progress normalized between 0.0 and 1.0.
   double get bufferedFraction {
     if (duration <= Duration.zero) return 0.0;
-    return (bufferedPosition.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+    return (bufferedPosition.inMilliseconds / duration.inMilliseconds).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   /// Remaining playback duration.
@@ -146,13 +150,15 @@ class BananaSeekBar extends StatefulWidget {
   final Widget? customThumb;
 
   /// Dynamic builder for the thumb widget based on current [BananaSeekBarValue].
-  final Widget Function(BuildContext context, BananaSeekBarValue value)? thumbBuilder;
+  final Widget Function(BuildContext context, BananaSeekBarValue value)?
+  thumbBuilder;
 
   /// A direct custom track widget (e.g. custom painted bar or gradient shape).
   final Widget? customTrack;
 
   /// Dynamic builder for the track widget based on current [BananaSeekBarValue].
-  final Widget Function(BuildContext context, BananaSeekBarValue value)? trackBuilder;
+  final Widget Function(BuildContext context, BananaSeekBarValue value)?
+  trackBuilder;
 
   /// A direct widget placed to the left of the track (e.g. title, icon, or play button).
   final Widget? leading;
@@ -164,20 +170,23 @@ class BananaSeekBar extends StatefulWidget {
   final Widget? timeLabel;
 
   /// Dynamic builder for the time label area based on current [BananaSeekBarValue].
-  final Widget Function(BuildContext context, BananaSeekBarValue value)? timeLabelBuilder;
+  final Widget Function(BuildContext context, BananaSeekBarValue value)?
+  timeLabelBuilder;
 
   /// A direct widget overlaid onto the seekbar (e.g. chapter markers, banner).
   final Widget? overlay;
 
   /// Dynamic builder for a scrub preview tooltip floating above the thumb while dragging.
-  final Widget Function(BuildContext context, Duration scrubPosition)? scrubTooltipBuilder;
+  final Widget Function(BuildContext context, Duration scrubPosition)?
+  scrubTooltipBuilder;
 
   /// Full layout builder providing [BananaSeekBarValue] and [defaultLayout].
   final Widget Function(
     BuildContext context,
     BananaSeekBarValue value,
     Widget defaultLayout,
-  )? builder;
+  )?
+  builder;
 
   /// Validates that [widget] is an allowed seekbar element.
   ///
@@ -188,7 +197,10 @@ class BananaSeekBar extends StatefulWidget {
   ///
   /// Scrollable list widgets (such as [ListView], [GridView], [SingleChildScrollView],
   /// [Scrollable], [PageView], [CustomScrollView], etc.) are disallowed and throw an [ArgumentError].
-  static void validateWidget(Widget? widget, {String parameterName = 'widget'}) {
+  static void validateWidget(
+    Widget? widget, {
+    String parameterName = 'widget',
+  }) {
     if (widget == null) return;
 
     _assertNotScrollable(widget, parameterName);
@@ -196,20 +208,30 @@ class BananaSeekBar extends StatefulWidget {
     // Recursively check children of common layout widgets to prevent nested list widgets
     if (widget is MultiChildRenderObjectWidget) {
       for (final child in widget.children) {
-        validateWidget(child, parameterName: '$parameterName -> ${child.runtimeType}');
+        validateWidget(
+          child,
+          parameterName: '$parameterName -> ${child.runtimeType}',
+        );
       }
     } else if (widget is SingleChildRenderObjectWidget) {
       if (widget.child != null) {
-        validateWidget(widget.child, parameterName: '$parameterName -> ${widget.child.runtimeType}');
+        validateWidget(
+          widget.child,
+          parameterName: '$parameterName -> ${widget.child.runtimeType}',
+        );
       }
     } else if (widget is Container && widget.child != null) {
-      validateWidget(widget.child, parameterName: '$parameterName -> ${widget.child.runtimeType}');
+      validateWidget(
+        widget.child,
+        parameterName: '$parameterName -> ${widget.child.runtimeType}',
+      );
     }
   }
 
   static void _assertNotScrollable(Widget widget, String parameterName) {
     final String typeName = widget.runtimeType.toString().toLowerCase();
-    final bool isScrollable = widget is ScrollView ||
+    final bool isScrollable =
+        widget is ScrollView ||
         widget is SingleChildScrollView ||
         widget is Scrollable ||
         widget is ListWheelScrollView ||
@@ -234,7 +256,8 @@ class BananaSeekBar extends StatefulWidget {
   State<BananaSeekBar> createState() => _BananaSeekBarState();
 }
 
-class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserver {
+class _BananaSeekBarState extends State<BananaSeekBar>
+    with WidgetsBindingObserver {
   bool _isDragging = false;
   Duration _dragPosition = Duration.zero;
   int _activePointerId = -1;
@@ -277,7 +300,9 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
         final duration = widget.controller.duration;
         final isLive = widget.controller.isLive;
         final isDragging = _isEffectivelyDragging;
-        final position = isDragging ? _dragPosition : widget.controller.position;
+        final position = isDragging
+            ? _dragPosition
+            : widget.controller.position;
         final buffered = widget.controller.bufferedPosition;
 
         final value = BananaSeekBarValue(
@@ -292,7 +317,10 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
 
         if (widget.builder != null) {
           final customLayout = widget.builder!(context, value, defaultLayout);
-          BananaSeekBar.validateWidget(customLayout, parameterName: 'builder result');
+          BananaSeekBar.validateWidget(
+            customLayout,
+            parameterName: 'builder result',
+          );
           return customLayout;
         }
 
@@ -303,7 +331,8 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
 
   Widget _buildDefaultLayout(BuildContext context, BananaSeekBarValue value) {
     final theme = Theme.of(context);
-    final labelStyle = widget.timeTextStyle ??
+    final labelStyle =
+        widget.timeTextStyle ??
         TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -312,8 +341,10 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
         );
 
     final activeColor = widget.activeTrackColor ?? theme.colorScheme.primary;
-    final inactiveColor = widget.inactiveTrackColor ?? Colors.white.withValues(alpha: 0.15);
-    final bufferedColor = widget.bufferedTrackColor ?? Colors.white.withValues(alpha: 0.35);
+    final inactiveColor =
+        widget.inactiveTrackColor ?? Colors.white.withValues(alpha: 0.15);
+    final bufferedColor =
+        widget.bufferedTrackColor ?? Colors.white.withValues(alpha: 0.35);
     final thumbColor = widget.thumbColor ?? activeColor;
 
     return Padding(
@@ -370,7 +401,10 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
                           ],
                         )
                       else
-                        Text(_formatDuration(value.duration), style: labelStyle),
+                        Text(
+                          _formatDuration(value.duration),
+                          style: labelStyle,
+                        ),
                     ],
                   ),
                 ],
@@ -403,14 +437,19 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
 
         // Custom or default thumb widget
         Widget thumbWidget;
-        final thumbRadius = widget.customThumb != null ? 11.0 : widget.thumbRadius;
+        final thumbRadius = widget.customThumb != null
+            ? 11.0
+            : widget.thumbRadius;
         final thumbSize = thumbRadius * 2;
 
         if (widget.customThumb != null) {
           thumbWidget = widget.customThumb!;
         } else if (widget.thumbBuilder != null) {
           thumbWidget = widget.thumbBuilder!(context, value);
-          BananaSeekBar.validateWidget(thumbWidget, parameterName: 'thumbBuilder result');
+          BananaSeekBar.validateWidget(
+            thumbWidget,
+            parameterName: 'thumbBuilder result',
+          );
         } else {
           // Default sleek circular thumb with shadow and tap glow
           thumbWidget = Container(
@@ -436,7 +475,10 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
           trackWidget = widget.customTrack!;
         } else if (widget.trackBuilder != null) {
           trackWidget = widget.trackBuilder!(context, value);
-          BananaSeekBar.validateWidget(trackWidget, parameterName: 'trackBuilder result');
+          BananaSeekBar.validateWidget(
+            trackWidget,
+            parameterName: 'trackBuilder result',
+          );
         } else {
           // Default track with buffered progress bar
           trackWidget = Stack(
@@ -573,13 +615,17 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
                   ),
 
                   // Scrub preview tooltip when dragging, cleanly centered above thumb
-                  if (_isEffectivelyDragging && widget.scrubTooltipBuilder != null)
+                  if (_isEffectivelyDragging &&
+                      widget.scrubTooltipBuilder != null)
                     Positioned(
                       left: thumbLeft + (thumbSize / 2),
                       top: (interactiveAreaHeight - thumbSize) / 2 - 6,
                       child: FractionalTranslation(
                         translation: const Offset(-0.5, -1.0),
-                        child: widget.scrubTooltipBuilder!(context, _dragPosition),
+                        child: widget.scrubTooltipBuilder!(
+                          context,
+                          _dragPosition,
+                        ),
                       ),
                     ),
                 ],
@@ -591,9 +637,15 @@ class _BananaSeekBarState extends State<BananaSeekBar> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildValidatedTimeLabel(BuildContext context, BananaSeekBarValue value) {
+  Widget _buildValidatedTimeLabel(
+    BuildContext context,
+    BananaSeekBarValue value,
+  ) {
     final widgetLabel = widget.timeLabelBuilder!(context, value);
-    BananaSeekBar.validateWidget(widgetLabel, parameterName: 'timeLabelBuilder result');
+    BananaSeekBar.validateWidget(
+      widgetLabel,
+      parameterName: 'timeLabelBuilder result',
+    );
     return widgetLabel;
   }
 

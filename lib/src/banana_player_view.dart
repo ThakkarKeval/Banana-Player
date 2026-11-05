@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+
 import 'banana_player_controller.dart';
 
 /// A widget that displays the video output of a [BananaPlayerController].
@@ -28,10 +29,7 @@ class BananaPlayerView extends StatelessWidget {
         if (textureId == null) {
           return placeholder ?? const SizedBox.shrink();
         }
-        return Texture(
-          textureId: textureId,
-          filterQuality: filterQuality,
-        );
+        return Texture(textureId: textureId, filterQuality: filterQuality);
       },
     );
   }

@@ -8,7 +8,7 @@
 PRODUCT_NAME = banana_player_example
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.cavernlabs.banana.player.bananaPlayerExample
+PRODUCT_BUNDLE_IDENTIFIER = com.uniqual.setup
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.cavernlabs.banana.player. All rights reserved.

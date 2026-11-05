@@ -14,7 +14,7 @@ public class BananaPlayerPlugin: NSObject, FlutterPlugin, BananaPlayerHostApi {
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let instance = BananaPlayerPlugin(registrar: registrar)
-    registrar.addPluginDelegate(instance)
+    registrar.publish(instance)
     BananaPlayerHostApiSetup.setUp(binaryMessenger: registrar.messenger(), api: instance)
   }
 
