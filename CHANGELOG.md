@@ -1,3 +1,8 @@
+## 0.0.2
+
+* Verified repository, issue tracker, and metadata configuration.
+* Added documentation and project links for pub.dev.
+
 ## 0.0.1
 
 * Initial release of Banana Player.
