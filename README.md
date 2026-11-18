@@ -14,13 +14,14 @@ A high-performance, cross-platform video player plugin for Flutter. Powered nati
 * 📱 **Dual Engine Support**:
   * **Android**: AndroidX Media3 / ExoPlayer with HLS and DASH extensions.
   * **iOS**: Native AVPlayer with HLS stream support.
+* 💬 **Closed Captions & Subtitles**: Query multi-language embedded subtitle tracks, select tracks or disable (`'off'`), and render crisp reactive subtitle overlays natively in Flutter with custom typography and decorations.
 * 🎚️ **Adaptive Bitrate & Quality Selection**: Read video track resolutions, bitrates, and frame rates on the fly; switch tracks manually or let ABR adapt automatically.
 * ⏩ **Variable Playback Speed**: Smooth rate switching from `0.25x` to `2.0x`.
 * 🎯 **BananaSeekBar Widget**:
   * Dual-track progress bar (active playback + buffered range).
   * Scrubbing preview tooltip (`scrubTooltipBuilder`).
   * Direct widget slot overrides for custom thumbs, tracks, leading, and trailing badges.
-* 📡 **Event-Driven Architecture**: Listen to state, position, buffer, and quality changes via streams or `ChangeNotifier`.
+* 📡 **Event-Driven Architecture**: Listen to state, position, buffer, quality, and subtitle changes via streams or `ChangeNotifier`.
 
 ---
 
@@ -195,7 +196,49 @@ for (final quality in qualities) {
 _controller.setVideoQuality('auto');
 ```
 
-### 2. Custom Seek Bar Overrides
+### 3. Closed Captions & Subtitles
+
+`BananaPlayer` automatically discovers embedded subtitle tracks (e.g. HLS WebVTT, CEA-608/708) and renders reactive subtitle overlays directly in Flutter with zero platform view overhead:
+
+```dart
+// Inspect available subtitle tracks
+final List<SubtitleTrack> tracks = _controller.subtitleTracks;
+
+for (final track in tracks) {
+  print('${track.label} (${track.language}) - selected: ${track.isSelected}');
+}
+
+// Select a specific subtitle track by id or language
+await _controller.setSubtitleTrack(tracks.first.id);
+
+// Disable subtitles
+await _controller.disableSubtitles();
+
+// Listen to real-time subtitle text cues
+_controller.onSubtitleTextChanged.listen((text) {
+  print('Active cue: $text');
+});
+```
+
+Customize the subtitle overlay in `BananaPlayerView`:
+
+```dart
+BananaPlayerView(
+  controller: _controller,
+  showSubtitles: true,
+  subtitleTextStyle: const TextStyle(
+    fontSize: 16,
+    color: Colors.amber,
+    fontWeight: FontWeight.bold,
+  ),
+  subtitleDecoration: BoxDecoration(
+    color: Colors.black.withOpacity(0.75),
+    borderRadius: BorderRadius.circular(6),
+  ),
+)
+```
+
+### 4. Custom Seek Bar Overrides
 
 `BananaSeekBar` supports complete custom widget replacement for thumbs, badges, and scrub tooltips:
 
@@ -250,11 +293,32 @@ BananaSeekBar(
 | `seekTo(Duration position)` | Seeks native player to target duration. |
 | `setPlaybackSpeed(double speed)` | Sets playback speed (e.g., 0.5, 1.0, 1.5, 2.0). |
 | `setVideoQuality(String qualityId)` | Switches video stream quality track. |
+| `getSubtitleTracks()` | Fetches available closed captions / subtitle tracks. |
+| `setSubtitleTrack(String trackId)` | Selects a subtitle track by ID, or `'off'` to disable. |
+| `disableSubtitles()` | Turns off closed captions. |
+| `subtitleTracks` | List of available `SubtitleTrack` options. |
+| `selectedSubtitleTrack` | Currently active `SubtitleTrack` or `null`. |
+| `isSubtitlesEnabled` | Whether closed captions are currently enabled. |
+| `currentSubtitleText` | Current text cue displayed on the screen. |
 | `setVolume(double volume)` | Sets output audio volume (`0.0` to `1.0`). |
 | `playbackState` | Current `PlaybackState` (`idle`, `buffering`, `ready`, `ended`, `paused`). |
 | `videoQualities` | List of available `VideoQuality` tracks. |
 | `position` / `duration` / `bufferedPosition` | Duration metrics. |
 | `dispose()` | Releases native player and texture resources. |
+
+### `BananaPlayerView`
+
+| Property | Description |
+|:---|:---|
+| `controller` | The `BananaPlayerController` driving this view. |
+| `placeholder` | Widget shown while the player is uninitialized. |
+| `filterQuality` | Texture filter quality (`low`, `medium`, `high`). |
+| `showSubtitles` | Whether to render the closed caption overlay (default: `true`). |
+| `subtitleTextStyle` | Custom `TextStyle` for subtitle cues. |
+| `subtitleDecoration` | Custom `Decoration` for subtitle text container. |
+| `subtitlePadding` | Outer padding around subtitle container within the video surface. |
+| `subtitleAlignment` | Alignment of subtitles on the surface (default: `bottomCenter`). |
+| `subtitleBuilder` | Custom builder for rendering subtitle cues. |
 
 ---
 

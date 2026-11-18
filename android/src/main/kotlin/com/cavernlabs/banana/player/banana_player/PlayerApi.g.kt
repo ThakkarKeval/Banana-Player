@@ -320,6 +320,63 @@ data class VideoQuality (
     return "VideoQuality(id=$id, width=$width, height=$height, bitrate=$bitrate, isSelected=$isSelected, label=$label, frameRate=$frameRate)"
   }
 }
+
+/**
+ * A closed captions / subtitle track representation.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class SubtitleTrack (
+  /** Unique track identifier or index, or 'off' when disabled. */
+  val id: String,
+  /** Human-readable title (e.g. 'English', 'Spanish', 'Off'). */
+  val label: String,
+  /** Whether this subtitle track is currently selected. */
+  val isSelected: Boolean,
+  /** BCP 47 or ISO language code (e.g. 'en', 'es'), if known. */
+  val language: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): SubtitleTrack {
+      val id = pigeonVar_list[0] as String
+      val label = pigeonVar_list[1] as String
+      val isSelected = pigeonVar_list[2] as Boolean
+      val language = pigeonVar_list[3] as String?
+      return SubtitleTrack(id, label, isSelected, language)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      label,
+      isSelected,
+      language,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as SubtitleTrack
+    return PlayerApiPigeonUtils.deepEquals(this.id, other.id) && PlayerApiPigeonUtils.deepEquals(this.label, other.label) && PlayerApiPigeonUtils.deepEquals(this.isSelected, other.isSelected) && PlayerApiPigeonUtils.deepEquals(this.language, other.language)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.id)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.label)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.isSelected)
+    result = 31 * result + PlayerApiPigeonUtils.deepHash(this.language)
+    return result
+  }
+  override fun toString(): String {
+    return "SubtitleTrack(id=$id, label=$label, isSelected=$isSelected, language=$language)"
+  }
+}
 private open class PlayerApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -338,6 +395,11 @@ private open class PlayerApiPigeonCodec : StandardMessageCodec() {
           VideoQuality.fromList(it)
         }
       }
+      132.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          SubtitleTrack.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -353,6 +415,10 @@ private open class PlayerApiPigeonCodec : StandardMessageCodec() {
       }
       is VideoQuality -> {
         stream.write(131)
+        writeValue(stream, value.toList())
+      }
+      is SubtitleTrack -> {
+        stream.write(132)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -377,6 +443,10 @@ interface BananaPlayerHostApi {
   fun getVideoQualities(textureId: Long): List<VideoQuality>
   fun setVideoQuality(textureId: Long, qualityId: String)
   fun setPlaybackSpeed(textureId: Long, speed: Double)
+  /** Fetches available closed captions / subtitle tracks for the current media. */
+  fun getSubtitleTracks(textureId: Long): List<SubtitleTrack>
+  /** Selects a closed caption track by [trackId], or pass 'off' to disable subtitles. */
+  fun setSubtitleTrack(textureId: Long, trackId: String)
   fun dispose(textureId: Long)
 
   companion object {
@@ -588,6 +658,42 @@ interface BananaPlayerHostApi {
         }
       }
       run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getSubtitleTracks$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getSubtitleTracks(textureIdArg))
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setSubtitleTrack$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val textureIdArg = args[0] as Long
+            val trackIdArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              api.setSubtitleTrack(textureIdArg, trackIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PlayerApiPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
@@ -661,6 +767,44 @@ class BananaPlayerFlutterApi(private val binaryMessenger: BinaryMessenger, priva
       val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onVideoQualitiesChanged$separatedMessageChannelSuffix"
       val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
       channel.send(listOf(textureIdArg, qualitiesArg)) {
+        if (it is List<*>) {
+          if (it.size > 1) {
+            continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))
+          } else {
+            continuation.resume(Unit)
+          }
+        } else {
+          continuation.resumeWithException(PlayerApiPigeonUtils.createConnectionError(channelName))
+        } 
+      }
+    }
+  }
+  suspend fun onSubtitleTracksChanged(textureIdArg: Long, tracksArg: List<SubtitleTrack>)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    return suspendCancellableCoroutine { continuation ->
+      val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTracksChanged$separatedMessageChannelSuffix"
+      val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+      channel.send(listOf(textureIdArg, tracksArg)) {
+        if (it is List<*>) {
+          if (it.size > 1) {
+            continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))
+          } else {
+            continuation.resume(Unit)
+          }
+        } else {
+          continuation.resumeWithException(PlayerApiPigeonUtils.createConnectionError(channelName))
+        } 
+      }
+    }
+  }
+  suspend fun onSubtitleTextChanged(textureIdArg: Long, textArg: String?)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    return suspendCancellableCoroutine { continuation ->
+      val channelName = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTextChanged$separatedMessageChannelSuffix"
+      val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+      channel.send(listOf(textureIdArg, textArg)) {
         if (it is List<*>) {
           if (it.size > 1) {
             continuation.resumeWithException(FlutterError(it[0] as String, it[1] as String, it[2] as String?))

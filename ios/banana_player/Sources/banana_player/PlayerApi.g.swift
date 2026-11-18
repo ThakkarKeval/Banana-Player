@@ -306,6 +306,62 @@ struct VideoQuality: Hashable, CustomStringConvertible {
   }
 }
 
+/// A closed captions / subtitle track representation.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct SubtitleTrack: Hashable, CustomStringConvertible {
+  /// Unique track identifier or index, or 'off' when disabled.
+  var id: String
+  /// Human-readable title (e.g. 'English', 'Spanish', 'Off').
+  var label: String
+  /// Whether this subtitle track is currently selected.
+  var isSelected: Bool
+  /// BCP 47 or ISO language code (e.g. 'en', 'es'), if known.
+  var language: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> SubtitleTrack? {
+    let id = pigeonVar_list[0] as! String
+    let label = pigeonVar_list[1] as! String
+    let isSelected = pigeonVar_list[2] as! Bool
+    let language: String? = nilOrValue(pigeonVar_list[3])
+
+    return SubtitleTrack(
+      id: id,
+      label: label,
+      isSelected: isSelected,
+      language: language
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      label,
+      isSelected,
+      language,
+    ]
+  }
+  static func == (lhs: SubtitleTrack, rhs: SubtitleTrack) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PlayerApiPigeonInternal.deepEquals(lhs.id, rhs.id) && PlayerApiPigeonInternal.deepEquals(lhs.label, rhs.label) && PlayerApiPigeonInternal.deepEquals(lhs.isSelected, rhs.isSelected) && PlayerApiPigeonInternal.deepEquals(lhs.language, rhs.language)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("SubtitleTrack")
+    PlayerApiPigeonInternal.deepHash(value: id, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: label, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: isSelected, hasher: &hasher)
+    PlayerApiPigeonInternal.deepHash(value: language, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "SubtitleTrack(id: \(String(describing: id)), label: \(String(describing: label)), isSelected: \(String(describing: isSelected)), language: \(String(describing: language)))"
+  }
+}
+
 private class PlayerApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -319,6 +375,8 @@ private class PlayerApiPigeonCodecReader: FlutterStandardReader {
       return PlayerConfig.fromList(self.readValue() as! [Any?])
     case 131:
       return VideoQuality.fromList(self.readValue() as! [Any?])
+    case 132:
+      return SubtitleTrack.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -335,6 +393,9 @@ private class PlayerApiPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? VideoQuality {
       super.writeByte(131)
+      super.writeValue(value.toList())
+    } else if let value = value as? SubtitleTrack {
+      super.writeByte(132)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -371,6 +432,10 @@ protocol BananaPlayerHostApi {
   func getVideoQualities(textureId: Int64) throws -> [VideoQuality]
   func setVideoQuality(textureId: Int64, qualityId: String) throws
   func setPlaybackSpeed(textureId: Int64, speed: Double) throws
+  /// Fetches available closed captions / subtitle tracks for the current media.
+  func getSubtitleTracks(textureId: Int64) throws -> [SubtitleTrack]
+  /// Selects a closed caption track by [trackId], or pass 'off' to disable subtitles.
+  func setSubtitleTrack(textureId: Int64, trackId: String) throws
   func dispose(textureId: Int64) throws
 }
 
@@ -552,6 +617,39 @@ class BananaPlayerHostApiSetup {
     } else {
       setPlaybackSpeedChannel.setMessageHandler(nil)
     }
+    /// Fetches available closed captions / subtitle tracks for the current media.
+    let getSubtitleTracksChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getSubtitleTracks\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getSubtitleTracksChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        do {
+          let result = try api.getSubtitleTracks(textureId: textureIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getSubtitleTracksChannel.setMessageHandler(nil)
+    }
+    /// Selects a closed caption track by [trackId], or pass 'off' to disable subtitles.
+    let setSubtitleTrackChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setSubtitleTrack\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setSubtitleTrackChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let textureIdArg = args[0] as! Int64
+        let trackIdArg = args[1] as! String
+        do {
+          try api.setSubtitleTrack(textureId: textureIdArg, trackId: trackIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setSubtitleTrackChannel.setMessageHandler(nil)
+    }
     let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       disposeChannel.setMessageHandler { message, reply in
@@ -575,6 +673,8 @@ protocol BananaPlayerFlutterApiProtocol {
   @MainActor func onPlaybackStateChanged(textureId textureIdArg: Int64, state stateArg: PlaybackState) async throws
   @MainActor func onPositionChanged(textureId textureIdArg: Int64, positionMs positionMsArg: Int64, durationMs durationMsArg: Int64, bufferedPositionMs bufferedPositionMsArg: Int64) async throws
   @MainActor func onVideoQualitiesChanged(textureId textureIdArg: Int64, qualities qualitiesArg: [VideoQuality]) async throws
+  @MainActor func onSubtitleTracksChanged(textureId textureIdArg: Int64, tracks tracksArg: [SubtitleTrack]) async throws
+  @MainActor func onSubtitleTextChanged(textureId textureIdArg: Int64, text textArg: String?) async throws
   @MainActor func onError(textureId textureIdArg: Int64, errorCode errorCodeArg: String, errorMessage errorMessageArg: String) async throws
 }
 class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
@@ -632,6 +732,46 @@ class BananaPlayerFlutterApi: BananaPlayerFlutterApiProtocol {
       let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onVideoQualitiesChanged\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([textureIdArg, qualitiesArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  @MainActor func onSubtitleTracksChanged(textureId textureIdArg: Int64, tracks tracksArg: [SubtitleTrack]) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTracksChanged\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([textureIdArg, tracksArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  @MainActor func onSubtitleTextChanged(textureId textureIdArg: Int64, text textArg: String?) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTextChanged\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([textureIdArg, textArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

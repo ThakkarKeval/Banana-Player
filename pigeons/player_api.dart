@@ -42,6 +42,28 @@ class VideoQuality {
   double? frameRate;
 }
 
+/// A closed captions / subtitle track representation.
+class SubtitleTrack {
+  SubtitleTrack({
+    required this.id,
+    required this.label,
+    required this.isSelected,
+    this.language,
+  });
+
+  /// Unique track identifier or index, or 'off' when disabled.
+  String id;
+
+  /// Human-readable title (e.g. 'English', 'Spanish', 'Off').
+  String label;
+
+  /// Whether this subtitle track is currently selected.
+  bool isSelected;
+
+  /// BCP 47 or ISO language code (e.g. 'en', 'es'), if known.
+  String? language;
+}
+
 enum PlaybackState { idle, buffering, ready, ended, paused }
 
 // 2. Class 1: Dart -> Native (HostApi)
@@ -71,6 +93,12 @@ abstract class BananaPlayerHostApi {
 
   void setPlaybackSpeed(int textureId, double speed);
 
+  /// Fetches available closed captions / subtitle tracks for the current media.
+  List<SubtitleTrack> getSubtitleTracks(int textureId);
+
+  /// Selects a closed caption track by [trackId], or pass 'off' to disable subtitles.
+  void setSubtitleTrack(int textureId, String trackId);
+
   void dispose(int textureId);
 }
 
@@ -87,6 +115,10 @@ abstract class BananaPlayerFlutterApi {
   );
 
   void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities);
+
+  void onSubtitleTracksChanged(int textureId, List<SubtitleTrack> tracks);
+
+  void onSubtitleTextChanged(int textureId, String? text);
 
   void onError(int textureId, String errorCode, String errorMessage);
 }

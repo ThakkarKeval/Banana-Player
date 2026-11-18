@@ -11,6 +11,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.common.text.CueGroup
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -116,12 +117,31 @@ class BananaPlayer(
             }
         }
 
+        override fun onCues(cueGroup: CueGroup) {
+            val text = if (cueGroup.cues.isNotEmpty()) {
+                val sb = StringBuilder()
+                for (cue in cueGroup.cues) {
+                    val cueText = cue.text?.toString()?.trim()
+                    if (!cueText.isNullOrEmpty()) {
+                        if (sb.isNotEmpty()) sb.append("\n")
+                        sb.append(cueText)
+                    }
+                }
+                if (sb.isNotEmpty()) sb.toString() else null
+            } else {
+                null
+            }
+            notifySubtitleText(text)
+        }
+
         override fun onTracksChanged(tracks: Tracks) {
             notifyVideoQualities()
+            notifySubtitleTracks()
         }
 
         override fun onRenderedFirstFrame() {
             notifyVideoQualities()
+            notifySubtitleTracks()
         }
     }
 
@@ -222,9 +242,11 @@ class BananaPlayer(
 
     fun setSource(url: String) {
         stopProgressUpdates()
+        notifySubtitleText(null)
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
             .build()
         val mediaItem = MediaItem.fromUri(resolveUri(url))
         exoPlayer.setMediaItem(mediaItem)
@@ -346,6 +368,116 @@ class BananaPlayer(
             } catch (_: Exception) {
             }
         }
+    }
+
+    private fun notifySubtitleText(text: String?) {
+        scope.launch {
+            try {
+                flutterApi.onSubtitleTextChanged(textureId, text)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun notifySubtitleTracks() {
+        val tracks = getSubtitleTracks()
+        scope.launch {
+            try {
+                flutterApi.onSubtitleTracksChanged(textureId, tracks)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun getSubtitleTracks(): List<SubtitleTrack> {
+        val tracks = exoPlayer.currentTracks
+        val result = mutableListOf<SubtitleTrack>()
+
+        val isTextDisabled = exoPlayer.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
+
+        var groupIndex = 0
+        var hasSelectedTrack = false
+
+        for (group in tracks.groups) {
+            if (group.type == C.TRACK_TYPE_TEXT) {
+                val mediaTrackGroup = group.mediaTrackGroup
+                for (trackIndex in 0 until mediaTrackGroup.length) {
+                    if (group.isTrackSupported(trackIndex)) {
+                        val format = mediaTrackGroup.getFormat(trackIndex)
+                        val id = "${groupIndex}_${trackIndex}"
+                        val lang = format.language
+                        val label = format.label ?: lang?.uppercase() ?: "Subtitle ${result.size + 1}"
+                        val isSelected = !isTextDisabled && group.isTrackSelected(trackIndex)
+                        if (isSelected) {
+                            hasSelectedTrack = true
+                        }
+
+                        result.add(
+                            SubtitleTrack(
+                                id = id,
+                                label = label,
+                                isSelected = isSelected,
+                                language = lang
+                            )
+                        )
+                    }
+                }
+            }
+            groupIndex++
+        }
+
+        if (result.isNotEmpty()) {
+            val offOption = SubtitleTrack(
+                id = "off",
+                label = "Off",
+                isSelected = isTextDisabled || !hasSelectedTrack,
+                language = null
+            )
+            result.add(0, offOption)
+        }
+
+        return result
+    }
+
+    fun setSubtitleTrack(trackId: String) {
+        if (trackId.equals("off", ignoreCase = true) || trackId.isEmpty()) {
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                .build()
+            notifySubtitleText(null)
+        } else {
+            val tracks = exoPlayer.currentTracks
+            var targetOverride: TrackSelectionOverride? = null
+            var groupIndex = 0
+            for (group in tracks.groups) {
+                if (group.type == C.TRACK_TYPE_TEXT) {
+                    val mediaTrackGroup = group.mediaTrackGroup
+                    for (trackIndex in 0 until mediaTrackGroup.length) {
+                        val id = "${groupIndex}_${trackIndex}"
+                        val format = mediaTrackGroup.getFormat(trackIndex)
+                        val lang = format.language
+                        if (trackId == id || trackId == format.id || (lang != null && trackId.equals(lang, ignoreCase = true))) {
+                            targetOverride = TrackSelectionOverride(mediaTrackGroup, trackIndex)
+                            break
+                        }
+                    }
+                    if (targetOverride != null) break
+                }
+                groupIndex++
+            }
+
+            if (targetOverride != null) {
+                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                    .setOverrideForType(targetOverride)
+                    .build()
+            }
+        }
+        notifySubtitleTracks()
     }
 
     fun seekTo(positionMs: Long) {

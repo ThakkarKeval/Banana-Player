@@ -84,6 +84,38 @@ void main() {
       expect(controller.selectedQuality?.height, 1080);
     });
 
+    test('identifies selected subtitle track and enabled state', () {
+      final controller = BananaPlayerController();
+      expect(controller.subtitleTracks, isEmpty);
+      expect(controller.selectedSubtitleTrack, isNull);
+      expect(controller.isSubtitlesEnabled, isFalse);
+      expect(controller.currentSubtitleText, isNull);
+
+      final tOff = SubtitleTrack(id: 'off', label: 'Off', isSelected: false);
+      final tEn = SubtitleTrack(
+        id: '0_0',
+        label: 'English',
+        language: 'en',
+        isSelected: true,
+      );
+
+      controller.updateStateForTesting(
+        subtitleTracks: [tOff, tEn],
+        subtitleText: 'Welcome to Banana Player',
+      );
+
+      expect(controller.subtitleTracks.length, 2);
+      expect(controller.selectedSubtitleTrack?.label, 'English');
+      expect(controller.isSubtitlesEnabled, isTrue);
+      expect(controller.currentSubtitleText, 'Welcome to Banana Player');
+
+      // Test off state
+      tOff.isSelected = true;
+      tEn.isSelected = false;
+      controller.updateStateForTesting(subtitleTracks: [tOff, tEn]);
+      expect(controller.isSubtitlesEnabled, isFalse);
+    });
+
     test('identifies live stream based on duration and position', () {
       final controller = BananaPlayerController();
       expect(controller.isLive, isFalse);
@@ -107,6 +139,8 @@ void main() {
       Duration? emittedDur;
       Duration? emittedBuf;
       List<VideoQuality>? emittedQualities;
+      List<SubtitleTrack>? emittedSubtitles;
+      String? emittedSubtitleText;
       String? emittedError;
 
       final s1 = controller.onPlaybackStateChanged.listen(
@@ -120,7 +154,13 @@ void main() {
       final s5 = controller.onVideoQualitiesChanged.listen(
         (q) => emittedQualities = q,
       );
-      final s6 = controller.onError.listen((e) => emittedError = e);
+      final s6 = controller.onSubtitleTracksChanged.listen(
+        (t) => emittedSubtitles = t,
+      );
+      final s7 = controller.onSubtitleTextChanged.listen(
+        (txt) => emittedSubtitleText = txt,
+      );
+      final s8 = controller.onError.listen((e) => emittedError = e);
 
       controller.updateStateForTesting(
         playbackState: PlaybackState.ready,
@@ -136,6 +176,10 @@ void main() {
             isSelected: true,
           ),
         ],
+        subtitleTracks: [
+          SubtitleTrack(id: 'en', label: 'English', isSelected: true),
+        ],
+        subtitleText: 'Subtitle line 1',
         errorMessage: 'Network error',
       );
 
@@ -146,6 +190,8 @@ void main() {
       expect(emittedDur, const Duration(seconds: 60));
       expect(emittedBuf, const Duration(seconds: 30));
       expect(emittedQualities?.length, 1);
+      expect(emittedSubtitles?.length, 1);
+      expect(emittedSubtitleText, 'Subtitle line 1');
       expect(emittedError, 'Network error');
 
       await s1.cancel();
@@ -154,6 +200,8 @@ void main() {
       await s4.cancel();
       await s5.cancel();
       await s6.cancel();
+      await s7.cancel();
+      await s8.cancel();
       await controller.dispose();
     });
 
@@ -269,6 +317,70 @@ void main() {
       final Texture textureWidget = tester.widget(textureFinder);
       expect(textureWidget.textureId, 101);
       expect(textureWidget.filterQuality, FilterQuality.medium);
+    });
+
+    testWidgets('renders subtitle overlay when active', (tester) async {
+      final controller = BananaPlayerController();
+      controller.updateStateForTesting(
+        textureId: 101,
+        subtitleText: 'Caption text in video',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: BananaPlayerView(controller: controller)),
+        ),
+      );
+
+      expect(find.byType(Texture), findsOneWidget);
+      expect(find.text('Caption text in video'), findsOneWidget);
+    });
+
+    testWidgets('hides subtitle overlay when showSubtitles is false', (
+      tester,
+    ) async {
+      final controller = BananaPlayerController();
+      controller.updateStateForTesting(
+        textureId: 101,
+        subtitleText: 'Hidden caption',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BananaPlayerView(
+              controller: controller,
+              showSubtitles: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Texture), findsOneWidget);
+      expect(find.text('Hidden caption'), findsNothing);
+    });
+
+    testWidgets('uses custom subtitleBuilder when provided', (tester) async {
+      final controller = BananaPlayerController();
+      controller.updateStateForTesting(
+        textureId: 101,
+        subtitleText: 'Custom styled text',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BananaPlayerView(
+              controller: controller,
+              subtitleBuilder: (context, text) =>
+                  Text('CUSTOM: $text', key: const Key('custom-subtitle')),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('custom-subtitle')), findsOneWidget);
+      expect(find.text('CUSTOM: Custom styled text'), findsOneWidget);
     });
   });
 

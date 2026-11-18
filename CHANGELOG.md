@@ -1,5 +1,10 @@
 ## 0.0.4
 
+* Added **Closed Captions & Subtitles** support across Android (Media3 ExoPlayer) and iOS (AVPlayer):
+  * Query embedded subtitle tracks (`getSubtitleTracks()`).
+  * Dynamic track switching and disabling (`setSubtitleTrack(...)`, `disableSubtitles()`).
+  * Real-time subtitle cue notifications via `onSubtitleTextChanged` and `onSubtitleTracksChanged` streams.
+  * Built-in, fully customizable subtitle overlay in `BananaPlayerView` with typography, decoration, padding, and custom builder support.
 * Expanded test coverage with comprehensive unit and widget tests for `BananaPlayerController`, `BananaPlayerView`, and `BananaSeekBar`.
 * Documented library, constructors, and event stream getters (zero `dartdoc` warnings).
 * Added GitHub Actions continuous integration (CI) workflow for automated linting, testing, and formatting verification.

@@ -7,7 +7,7 @@ import Foundation
 ///
 /// Implements [FlutterTexture] to deliver decoded CVPixelBuffers directly
 /// to Flutter's Metal texture registry with zero PlatformView overhead.
-class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
+class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AVPlayerItemLegibleOutputPushDelegate {
   private(set) var textureId: Int64 = 0
 
   private let registry: FlutterTextureRegistry
@@ -17,6 +17,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
 
   private var currentItem: AVPlayerItem?
   private var videoOutput: AVPlayerItemVideoOutput?
+  private var legibleOutput: AVPlayerItemLegibleOutput?
   private var latestPixelBuffer: CVPixelBuffer?
 
   private var displayLink: CADisplayLink?
@@ -112,6 +113,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
     item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
 
     setupVideoOutput(for: item)
+    setupLegibleOutput(for: item)
     setupItemObservers(for: item)
 
     self.currentItem = item
@@ -133,6 +135,26 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
     output.setDelegate(self, queue: DispatchQueue.main)
     item.add(output)
     self.videoOutput = output
+  }
+
+  private func setupLegibleOutput(for item: AVPlayerItem) {
+    let output = AVPlayerItemLegibleOutput()
+    output.suppressesPlayerRenderedLegibleOutput = true
+    output.setDelegate(self, queue: DispatchQueue.main)
+    item.add(output)
+    self.legibleOutput = output
+  }
+
+  func output(
+    _ output: AVPlayerItemLegibleOutput,
+    didOutputAttributedStrings strings: [NSAttributedString],
+    nativeSampleBuffers nativeSamples: [Any],
+    forItemTime itemTime: CMTime
+  ) {
+    let combinedText = strings.map { $0.string.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+      .joined(separator: "\n")
+    notifySubtitleText(combinedText.isEmpty ? nil : combinedText)
   }
 
   func outputMediaDataWillChange(_ sender: AVPlayerItemOutput) {
@@ -220,6 +242,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
         self.notifyPlaybackState(isPlaying ? .ready : .paused)
         self.notifyPosition()
         self.notifyVideoQualities()
+        self.notifySubtitleTracks()
       case .failed:
         let errorMsg = item.error?.localizedDescription ?? "Failed to load media item"
         Task { @MainActor in
@@ -260,6 +283,11 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
 
     loadedTimeRangesObserver?.invalidate()
     loadedTimeRangesObserver = nil
+
+    if let output = legibleOutput, let current = currentItem {
+      current.remove(output)
+      legibleOutput = nil
+    }
 
     if let current = currentItem {
       NotificationCenter.default.removeObserver(
@@ -368,6 +396,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
     removeItemObservers()
     latestPixelBuffer = nil
     selectedQualityId = nil
+    notifySubtitleText(nil)
 
     notifyPlaybackState(.buffering)
 
@@ -481,6 +510,81 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate {
       }
     }
     notifyVideoQualities()
+  }
+
+  // MARK: - Closed Captions & Subtitles
+
+  func getSubtitleTracks() -> [SubtitleTrack] {
+    guard let item = currentItem else { return [] }
+    guard let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) else {
+      return []
+    }
+    let currentSelection = item.currentMediaSelection.selectedMediaOption(in: group)
+    var tracks: [SubtitleTrack] = []
+
+    let isOff = currentSelection == nil
+    tracks.append(SubtitleTrack(id: "off", label: "Off", isSelected: isOff, language: nil))
+
+    for (index, option) in group.options.enumerated() {
+      let isSelected = currentSelection == option
+      let id = "\(index)"
+      let label = option.displayName
+      let language = option.extendedLanguageTag ?? option.locale?.identifier
+      tracks.append(
+        SubtitleTrack(
+          id: id,
+          label: label,
+          isSelected: isSelected,
+          language: language
+        )
+      )
+    }
+    return tracks
+  }
+
+  func setSubtitleTrack(trackId: String) {
+    guard let item = currentItem else { return }
+    guard let group = item.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) else {
+      return
+    }
+
+    if trackId.caseInsensitiveCompare("off") == .orderedSame || trackId.isEmpty {
+      item.select(nil, in: group)
+      notifySubtitleText(nil)
+    } else if let index = Int(trackId), index >= 0 && index < group.options.count {
+      let option = group.options[index]
+      item.select(option, in: group)
+    } else {
+      if let option = group.options.first(where: {
+        ($0.extendedLanguageTag?.caseInsensitiveCompare(trackId) == .orderedSame) ||
+        ($0.locale?.identifier.caseInsensitiveCompare(trackId) == .orderedSame) ||
+        ($0.displayName.caseInsensitiveCompare(trackId) == .orderedSame)
+      }) {
+        item.select(option, in: group)
+      }
+    }
+    notifySubtitleTracks()
+  }
+
+  private func notifySubtitleTracks() {
+    guard !isDisposed else { return }
+    let tracks = getSubtitleTracks()
+    Task { @MainActor in
+      try? await self.flutterApi.onSubtitleTracksChanged(
+        textureId: self.textureId,
+        tracks: tracks
+      )
+    }
+  }
+
+  private func notifySubtitleText(_ text: String?) {
+    guard !isDisposed else { return }
+    Task { @MainActor in
+      try? await self.flutterApi.onSubtitleTextChanged(
+        textureId: self.textureId,
+        text: text
+      )
+    }
   }
 
   // MARK: - Disposal

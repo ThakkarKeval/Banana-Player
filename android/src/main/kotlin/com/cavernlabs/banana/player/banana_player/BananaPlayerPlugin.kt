@@ -80,6 +80,14 @@ class BananaPlayerPlugin : FlutterPlugin, BananaPlayerHostApi {
         players[textureId]?.setPlaybackSpeed(speed.toFloat())
     }
 
+    override fun getSubtitleTracks(textureId: Long): List<SubtitleTrack> {
+        return players[textureId]?.getSubtitleTracks() ?: emptyList()
+    }
+
+    override fun setSubtitleTrack(textureId: Long, trackId: String) {
+        players[textureId]?.setSubtitleTrack(trackId)
+    }
+
     override fun dispose(textureId: Long) {
         players.remove(textureId)?.dispose()
     }

@@ -30,6 +30,8 @@ class BananaPlayerController extends ChangeNotifier {
   Duration _duration = Duration.zero;
   Duration _bufferedPosition = Duration.zero;
   List<VideoQuality> _videoQualities = const [];
+  List<SubtitleTrack> _subtitleTracks = const [];
+  String? _currentSubtitleText;
   double _playbackSpeed = 1.0;
   String? _errorMessage;
   bool _isDisposed = false;
@@ -68,6 +70,26 @@ class BananaPlayerController extends ChangeNotifier {
     }
     return null;
   }
+
+  /// Available closed captions / subtitle tracks for the current media.
+  List<SubtitleTrack> get subtitleTracks => _subtitleTracks;
+
+  /// Currently selected subtitle track, or `null` if none or off.
+  SubtitleTrack? get selectedSubtitleTrack {
+    for (final track in _subtitleTracks) {
+      if (track.isSelected) return track;
+    }
+    return null;
+  }
+
+  /// Whether subtitles are currently enabled (selected track is not 'off').
+  bool get isSubtitlesEnabled {
+    final selected = selectedSubtitleTrack;
+    return selected != null && selected.id.toLowerCase() != 'off';
+  }
+
+  /// Current active closed caption / subtitle text cue, or `null` if none active.
+  String? get currentSubtitleText => _currentSubtitleText;
 
   /// Whether the current media is a live stream or indeterminate duration.
   bool get isLive =>
@@ -112,6 +134,20 @@ class BananaPlayerController extends ChangeNotifier {
   Stream<List<VideoQuality>> get onVideoQualitiesChanged =>
       _qualitiesStreamController.stream;
 
+  final StreamController<List<SubtitleTrack>> _subtitlesStreamController =
+      StreamController<List<SubtitleTrack>>.broadcast();
+
+  /// Broadcast stream emitting available [SubtitleTrack] options when tracks change.
+  Stream<List<SubtitleTrack>> get onSubtitleTracksChanged =>
+      _subtitlesStreamController.stream;
+
+  final StreamController<String?> _subtitleTextStreamController =
+      StreamController<String?>.broadcast();
+
+  /// Broadcast stream emitting the active subtitle cue text whenever it changes.
+  Stream<String?> get onSubtitleTextChanged =>
+      _subtitleTextStreamController.stream;
+
   final StreamController<String> _errorStreamController =
       StreamController<String>.broadcast();
 
@@ -153,6 +189,8 @@ class BananaPlayerController extends ChangeNotifier {
     _duration = Duration.zero;
     _bufferedPosition = Duration.zero;
     _videoQualities = const [];
+    _subtitleTracks = const [];
+    _currentSubtitleText = null;
     final normalized = _normalizeUrl(url);
     final config = PlayerConfig(
       url: normalized,
@@ -214,6 +252,8 @@ class BananaPlayerController extends ChangeNotifier {
     _duration = Duration.zero;
     _bufferedPosition = Duration.zero;
     _videoQualities = const [];
+    _subtitleTracks = const [];
+    _currentSubtitleText = null;
     _playbackState = PlaybackState.buffering;
     notifyListeners();
 
@@ -321,6 +361,29 @@ class BananaPlayerController extends ChangeNotifier {
     }
   }
 
+  /// Fetches available closed captions / subtitle tracks for the current media.
+  Future<List<SubtitleTrack>> getSubtitleTracks() async {
+    if (isInitialized) {
+      final tracks = await _hostApi.getSubtitleTracks(_textureId!);
+      _subtitleTracks = List<SubtitleTrack>.unmodifiable(tracks);
+      _subtitlesStreamController.add(_subtitleTracks);
+      notifyListeners();
+    }
+    return _subtitleTracks;
+  }
+
+  /// Sets the active closed caption / subtitle track.
+  /// Pass `"off"` or an empty string to disable subtitles, or pass a specific [SubtitleTrack.id].
+  Future<void> setSubtitleTrack(String trackId) async {
+    if (isInitialized) {
+      await _hostApi.setSubtitleTrack(_textureId!, trackId);
+      await getSubtitleTracks();
+    }
+  }
+
+  /// Disables closed captions / subtitles.
+  Future<void> disableSubtitles() => setSubtitleTrack('off');
+
   /// Sets the playback speed multiplier (e.g. 0.5, 0.75, 1.0, 1.25, 1.5, 2.0).
   /// Speeds are clamped between 0.25x and 4.0x.
   Future<void> setPlaybackSpeed(double speed) async {
@@ -348,6 +411,8 @@ class BananaPlayerController extends ChangeNotifier {
     await _durationStreamController.close();
     await _bufferedStreamController.close();
     await _qualitiesStreamController.close();
+    await _subtitlesStreamController.close();
+    await _subtitleTextStreamController.close();
     await _errorStreamController.close();
 
     super.dispose();
@@ -399,6 +464,20 @@ class BananaPlayerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _handleSubtitleTracksChanged(List<SubtitleTrack> tracks) {
+    _subtitleTracks = List<SubtitleTrack>.unmodifiable(tracks);
+    _subtitlesStreamController.add(_subtitleTracks);
+    notifyListeners();
+  }
+
+  void _handleSubtitleTextChanged(String? text) {
+    if (_currentSubtitleText != text) {
+      _currentSubtitleText = text;
+      _subtitleTextStreamController.add(text);
+      notifyListeners();
+    }
+  }
+
   void _handleError(String errorCode, String errorMessage) {
     _errorMessage = '$errorCode: $errorMessage';
     _errorStreamController.add(_errorMessage!);
@@ -418,6 +497,8 @@ class BananaPlayerController extends ChangeNotifier {
     Duration? duration,
     Duration? bufferedPosition,
     List<VideoQuality>? videoQualities,
+    List<SubtitleTrack>? subtitleTracks,
+    String? subtitleText,
     String? errorMessage,
   }) {
     if (textureId != null) _textureId = textureId;
@@ -440,6 +521,14 @@ class BananaPlayerController extends ChangeNotifier {
     if (videoQualities != null) {
       _videoQualities = List<VideoQuality>.unmodifiable(videoQualities);
       _qualitiesStreamController.add(_videoQualities);
+    }
+    if (subtitleTracks != null) {
+      _subtitleTracks = List<SubtitleTrack>.unmodifiable(subtitleTracks);
+      _subtitlesStreamController.add(_subtitleTracks);
+    }
+    if (subtitleText != null) {
+      _currentSubtitleText = subtitleText;
+      _subtitleTextStreamController.add(subtitleText);
     }
     if (errorMessage != null) {
       _errorMessage = errorMessage;
@@ -471,6 +560,18 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
   void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities) {
     BananaPlayerController._activeControllers[textureId]
         ?._handleVideoQualitiesChanged(qualities);
+  }
+
+  @override
+  void onSubtitleTracksChanged(int textureId, List<SubtitleTrack> tracks) {
+    BananaPlayerController._activeControllers[textureId]
+        ?._handleSubtitleTracksChanged(tracks);
+  }
+
+  @override
+  void onSubtitleTextChanged(int textureId, String? text) {
+    BananaPlayerController._activeControllers[textureId]
+        ?._handleSubtitleTextChanged(text);
   }
 
   @override

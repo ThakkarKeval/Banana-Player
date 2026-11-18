@@ -237,6 +237,70 @@ class VideoQuality {
   }
 }
 
+/// A closed captions / subtitle track representation.
+class SubtitleTrack {
+  SubtitleTrack({
+    required this.id,
+    required this.label,
+    required this.isSelected,
+    this.language,
+  });
+
+  /// Unique track identifier or index, or 'off' when disabled.
+  String id;
+
+  /// Human-readable title (e.g. 'English', 'Spanish', 'Off').
+  String label;
+
+  /// Whether this subtitle track is currently selected.
+  bool isSelected;
+
+  /// BCP 47 or ISO language code (e.g. 'en', 'es'), if known.
+  String? language;
+
+  List<Object?> _toList() {
+    return <Object?>[id, label, isSelected, language];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static SubtitleTrack decode(Object result) {
+    result as List<Object?>;
+    return SubtitleTrack(
+      id: result[0]! as String,
+      label: result[1]! as String,
+      isSelected: result[2]! as bool,
+      language: result[3] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! SubtitleTrack || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) &&
+        _deepEquals(label, other.label) &&
+        _deepEquals(isSelected, other.isSelected) &&
+        _deepEquals(language, other.language);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'SubtitleTrack(id: $id, label: $label, isSelected: $isSelected, language: $language)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -253,6 +317,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is VideoQuality) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
+    } else if (value is SubtitleTrack) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -268,6 +335,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlayerConfig.decode(readValue(buffer)!);
       case 131:
         return VideoQuality.decode(readValue(buffer)!);
+      case 132:
+        return SubtitleTrack.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -517,6 +586,49 @@ class BananaPlayerHostApi {
     );
   }
 
+  /// Fetches available closed captions / subtitle tracks for the current media.
+  Future<List<SubtitleTrack>> getSubtitleTracks(int textureId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.getSubtitleTracks$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[textureId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>).cast<SubtitleTrack>();
+  }
+
+  /// Selects a closed caption track by [trackId], or pass 'off' to disable subtitles.
+  Future<void> setSubtitleTrack(int textureId, String trackId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.setSubtitleTrack$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[textureId, trackId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
   Future<void> dispose(int textureId) async {
     final pigeonVar_channelName =
         'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.dispose$pigeonVar_messageChannelSuffix';
@@ -551,6 +663,10 @@ abstract class BananaPlayerFlutterApi {
   );
 
   void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities);
+
+  void onSubtitleTracksChanged(int textureId, List<SubtitleTrack> tracks);
+
+  void onSubtitleTextChanged(int textureId, String? text);
 
   void onError(int textureId, String errorCode, String errorMessage);
 
@@ -637,6 +753,59 @@ abstract class BananaPlayerFlutterApi {
               .cast<VideoQuality>();
           try {
             api.onVideoQualitiesChanged(arg_textureId, arg_qualities);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTracksChanged$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_textureId = args[0]! as int;
+          final List<SubtitleTrack> arg_tracks = (args[1]! as List<Object?>)
+              .cast<SubtitleTrack>();
+          try {
+            api.onSubtitleTracksChanged(arg_textureId, arg_tracks);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onSubtitleTextChanged$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_textureId = args[0]! as int;
+          final String? arg_text = args[1] as String?;
+          try {
+            api.onSubtitleTextChanged(arg_textureId, arg_text);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

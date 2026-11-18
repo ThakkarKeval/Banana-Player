@@ -100,6 +100,17 @@ public class BananaPlayerPlugin: NSObject, FlutterPlugin, BananaPlayerHostApi {
     player.setPlaybackSpeed(Float(speed))
   }
 
+  func getSubtitleTracks(textureId: Int64) throws -> [SubtitleTrack] {
+    return players[textureId]?.getSubtitleTracks() ?? []
+  }
+
+  func setSubtitleTrack(textureId: Int64, trackId: String) throws {
+    guard let player = players[textureId] else {
+      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
+    }
+    player.setSubtitleTrack(trackId: trackId)
+  }
+
   func dispose(textureId: Int64) throws {
     if let player = players.removeValue(forKey: textureId) {
       player.dispose()
