@@ -42,6 +42,7 @@ class BananaPlayer(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val surface: Surface = Surface(textureEntry.surfaceTexture())
     private var progressJob: Job? = null
+    private var isDisposed = false
 
     private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
         .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 BananaPlayer/1.0")
@@ -109,6 +110,8 @@ class BananaPlayer(
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            stopProgressUpdates()
+            notifyPlaybackState(PlaybackState.IDLE)
             scope.launch {
                 try {
                     flutterApi.onError(textureId, error.errorCodeName, error.message ?: "Playback error")
@@ -481,7 +484,8 @@ class BananaPlayer(
     }
 
     fun seekTo(positionMs: Long) {
-        exoPlayer.seekTo(positionMs)
+        val targetMs = if (positionMs < 0L) 0L else positionMs
+        exoPlayer.seekTo(targetMs)
         notifyPosition()
     }
 
@@ -495,6 +499,8 @@ class BananaPlayer(
     }
 
     fun dispose() {
+        if (isDisposed) return
+        isDisposed = true
         stopProgressUpdates()
         scope.cancel()
         exoPlayer.removeListener(playerListener)

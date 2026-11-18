@@ -244,6 +244,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AV
         self.notifyVideoQualities()
         self.notifySubtitleTracks()
       case .failed:
+        self.notifyPlaybackState(.idle)
         let errorMsg = item.error?.localizedDescription ?? "Failed to load media item"
         Task { @MainActor in
           try? await self.flutterApi.onError(
@@ -283,6 +284,11 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AV
 
     loadedTimeRangesObserver?.invalidate()
     loadedTimeRangesObserver = nil
+
+    if let output = videoOutput, let current = currentItem {
+      current.remove(output)
+      videoOutput = nil
+    }
 
     if let output = legibleOutput, let current = currentItem {
       current.remove(output)
@@ -404,9 +410,10 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AV
   }
 
   func seekTo(positionMs: Int64) {
-    let targetTime = CMTime(value: positionMs, timescale: 1000)
+    let clampedMs = max(0, positionMs)
+    let targetTime = CMTime(value: clampedMs, timescale: 1000)
     player.seek(to: targetTime, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
-      guard let self = self else { return }
+      guard let self = self, !self.isDisposed else { return }
       self.notifyPosition()
       self.registry.textureFrameAvailable(self.textureId)
     }
@@ -482,6 +489,20 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AV
             frameRate: fps
           )
         )
+      }
+
+      if !qualities.isEmpty {
+        let isAuto = selectedQualityId == nil || selectedQualityId == "auto"
+        let autoOption = VideoQuality(
+          id: "auto",
+          width: 0,
+          height: 0,
+          bitrate: 0,
+          isSelected: isAuto,
+          label: "Auto",
+          frameRate: nil
+        )
+        qualities.insert(autoOption, at: 0)
       }
     }
     return qualities

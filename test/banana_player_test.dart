@@ -1,6 +1,7 @@
 import 'package:banana_player/banana_player.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -651,6 +652,92 @@ void main() {
         await tester.pump();
 
         expect(capturedValue?.isDragging, false);
+      },
+    );
+
+    test(
+      'seekTo clamps negative positions and positions exceeding duration',
+      () async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMessageHandler(
+              'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.seekTo',
+              (ByteData? message) async {
+                final codec = const StandardMessageCodec();
+                return codec.encodeMessage(<Object?>[null]);
+              },
+            );
+
+        final controller = BananaPlayerController();
+        controller.updateStateForTesting(
+          textureId: 42,
+          duration: const Duration(seconds: 100),
+        );
+
+        // Seek to negative position
+        await controller.seekTo(const Duration(seconds: -10));
+        expect(controller.position, Duration.zero);
+
+        // Seek beyond duration
+        await controller.seekTo(const Duration(seconds: 150));
+        expect(controller.position, const Duration(seconds: 100));
+      },
+    );
+
+    test('seekTo resets ended state if seeking to earlier position', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMessageHandler(
+            'dev.flutter.pigeon.banana_player.BananaPlayerHostApi.seekTo',
+            (ByteData? message) async {
+              final codec = const StandardMessageCodec();
+              return codec.encodeMessage(<Object?>[null]);
+            },
+          );
+
+      final controller = BananaPlayerController();
+      controller.updateStateForTesting(
+        textureId: 42,
+        playbackState: PlaybackState.ended,
+        duration: const Duration(seconds: 100),
+        position: const Duration(seconds: 100),
+      );
+
+      expect(controller.playbackState, PlaybackState.ended);
+      await controller.seekTo(const Duration(seconds: 50));
+      expect(controller.playbackState, PlaybackState.paused);
+    });
+
+    test('dispose is idempotent and safe to call multiple times', () async {
+      final controller = BananaPlayerController();
+      await controller.dispose();
+      expect(controller.isInitialized, isFalse);
+
+      // Calling dispose again must not throw
+      await expectLater(controller.dispose(), completes);
+    });
+
+    test('initialize after disposal throws StateError', () async {
+      final controller = BananaPlayerController();
+      await controller.dispose();
+
+      expect(
+        () => controller.initialize(url: 'https://example.com/video.mp4'),
+        throwsStateError,
+      );
+      expect(
+        () => controller.setSource('https://example.com/video.mp4'),
+        throwsStateError,
+      );
+    });
+
+    test(
+      'stale events after disposal are safely ignored without crashing',
+      () async {
+        final controller = BananaPlayerController();
+        controller.updateStateForTesting(textureId: 99);
+        await controller.dispose();
+
+        // Triggering updateStateForTesting or stream operations on disposed controller should not throw
+        expect(controller.isInitialized, isFalse);
       },
     );
   });

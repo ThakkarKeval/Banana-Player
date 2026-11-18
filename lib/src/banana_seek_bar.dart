@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import 'banana_player_controller.dart';
 
@@ -332,21 +332,18 @@ class _BananaSeekBarState extends State<BananaSeekBar>
   }
 
   Widget _buildDefaultLayout(BuildContext context, BananaSeekBarValue value) {
-    final theme = Theme.of(context);
     final labelStyle =
         widget.timeTextStyle ??
         TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.75),
+          color: const Color(0xBFFFFFFF),
           fontFeatures: const [FontFeature.tabularFigures()],
         );
 
-    final activeColor = widget.activeTrackColor ?? theme.colorScheme.primary;
-    final inactiveColor =
-        widget.inactiveTrackColor ?? Colors.white.withValues(alpha: 0.15);
-    final bufferedColor =
-        widget.bufferedTrackColor ?? Colors.white.withValues(alpha: 0.35);
+    final activeColor = widget.activeTrackColor ?? const Color(0xFFFFD200);
+    final inactiveColor = widget.inactiveTrackColor ?? const Color(0x26FFFFFF);
+    final bufferedColor = widget.bufferedTrackColor ?? const Color(0x59FFFFFF);
     final thumbColor = widget.thumbColor ?? activeColor;
 
     return Padding(
@@ -388,7 +385,7 @@ class _BananaSeekBarState extends State<BananaSeekBar>
                               width: 6,
                               height: 6,
                               decoration: const BoxDecoration(
-                                color: Colors.redAccent,
+                                color: Color(0xFFFF5252),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -396,7 +393,7 @@ class _BananaSeekBarState extends State<BananaSeekBar>
                             Text(
                               'LIVE',
                               style: labelStyle.copyWith(
-                                color: Colors.redAccent,
+                                color: const Color(0xFFFF5252),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

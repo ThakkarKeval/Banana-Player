@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'banana_player'
-  s.version          = '0.0.1'
+  s.version          = '0.0.5'
   s.summary          = 'A exoplayer wrapper library for your flutter projects'
   s.description      = <<-DESC
 A exoplayer wrapper library for your flutter projects

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io' show File;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import 'player_api.g.dart';
 
@@ -25,6 +25,7 @@ class BananaPlayerController extends ChangeNotifier {
   final BananaPlayerHostApi _hostApi = BananaPlayerHostApi();
 
   int? _textureId;
+  int _initGeneration = 0;
   PlaybackState _playbackState = PlaybackState.idle;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -176,12 +177,20 @@ class BananaPlayerController extends ChangeNotifier {
       throw StateError('Cannot initialize a disposed BananaPlayerController');
     }
 
+    final generation = ++_initGeneration;
+
     // Safely release previous player instance if re-initializing
     if (_textureId != null) {
       final oldId = _textureId!;
       _activeControllers.remove(oldId);
       _textureId = null;
-      await _hostApi.dispose(oldId);
+      try {
+        await _hostApi.dispose(oldId);
+      } catch (_) {}
+    }
+
+    if (_isDisposed || generation != _initGeneration) {
+      throw StateError('Player initialization was cancelled or superseded');
     }
 
     _errorMessage = null;
@@ -197,7 +206,28 @@ class BananaPlayerController extends ChangeNotifier {
       autoPlay: autoPlay,
       volume: volume,
     );
-    final textureId = await _hostApi.create(config);
+
+    int textureId;
+    try {
+      textureId = await _hostApi.create(config);
+    } catch (e) {
+      if (!_isDisposed && generation == _initGeneration) {
+        _playbackState = PlaybackState.idle;
+        _errorMessage = e.toString();
+        if (!_errorStreamController.isClosed) {
+          _errorStreamController.add(_errorMessage!);
+        }
+        notifyListeners();
+      }
+      rethrow;
+    }
+
+    if (_isDisposed || generation != _initGeneration) {
+      try {
+        await _hostApi.dispose(textureId);
+      } catch (_) {}
+      throw StateError('Player initialization was cancelled or superseded');
+    }
 
     _textureId = textureId;
     _activeControllers[textureId] = this;
@@ -304,8 +334,19 @@ class BananaPlayerController extends ChangeNotifier {
   /// Seeks to a specific [position].
   Future<void> seekTo(Duration position) async {
     if (isInitialized) {
-      await _hostApi.seekTo(_textureId!, position.inMilliseconds);
-      _position = position;
+      final clamped = position < Duration.zero
+          ? Duration.zero
+          : (_duration > Duration.zero && position > _duration
+                ? _duration
+                : position);
+      await _hostApi.seekTo(_textureId!, clamped.inMilliseconds);
+      _position = clamped;
+      if (_playbackState == PlaybackState.ended && clamped < _duration) {
+        _playbackState = PlaybackState.paused;
+        if (!_stateStreamController.isClosed) {
+          _stateStreamController.add(_playbackState);
+        }
+      }
       notifyListeners();
     }
   }
@@ -399,31 +440,54 @@ class BananaPlayerController extends ChangeNotifier {
   Future<void> dispose() async {
     if (_isDisposed) return;
     _isDisposed = true;
+    _initGeneration++;
 
     if (_textureId != null) {
-      _activeControllers.remove(_textureId);
-      await _hostApi.dispose(_textureId!);
+      final id = _textureId!;
+      _activeControllers.remove(id);
       _textureId = null;
+      try {
+        await _hostApi.dispose(id);
+      } catch (_) {}
     }
 
-    await _stateStreamController.close();
-    await _positionStreamController.close();
-    await _durationStreamController.close();
-    await _bufferedStreamController.close();
-    await _qualitiesStreamController.close();
-    await _subtitlesStreamController.close();
-    await _subtitleTextStreamController.close();
-    await _errorStreamController.close();
+    if (!_stateStreamController.isClosed) {
+      await _stateStreamController.close();
+    }
+    if (!_positionStreamController.isClosed) {
+      await _positionStreamController.close();
+    }
+    if (!_durationStreamController.isClosed) {
+      await _durationStreamController.close();
+    }
+    if (!_bufferedStreamController.isClosed) {
+      await _bufferedStreamController.close();
+    }
+    if (!_qualitiesStreamController.isClosed) {
+      await _qualitiesStreamController.close();
+    }
+    if (!_subtitlesStreamController.isClosed) {
+      await _subtitlesStreamController.close();
+    }
+    if (!_subtitleTextStreamController.isClosed) {
+      await _subtitleTextStreamController.close();
+    }
+    if (!_errorStreamController.isClosed) {
+      await _errorStreamController.close();
+    }
 
     super.dispose();
   }
 
   void _handlePlaybackStateChanged(PlaybackState state) {
+    if (_isDisposed) return;
     _playbackState = state;
     if (state == PlaybackState.ended && _duration > Duration.zero) {
       _position = _duration;
     }
-    _stateStreamController.add(state);
+    if (!_stateStreamController.isClosed) {
+      _stateStreamController.add(state);
+    }
     notifyListeners();
   }
 
@@ -432,9 +496,12 @@ class BananaPlayerController extends ChangeNotifier {
     int durationMs,
     int bufferedPositionMs,
   ) {
-    final newPos = Duration(milliseconds: positionMs);
-    final newDur = Duration(milliseconds: durationMs);
-    final newBuf = Duration(milliseconds: bufferedPositionMs);
+    if (_isDisposed) return;
+    final newPos = Duration(milliseconds: positionMs < 0 ? 0 : positionMs);
+    final newDur = Duration(milliseconds: durationMs < 0 ? 0 : durationMs);
+    final newBuf = Duration(
+      milliseconds: bufferedPositionMs < 0 ? 0 : bufferedPositionMs,
+    );
 
     final bool changed =
         _position != newPos ||
@@ -447,11 +514,15 @@ class BananaPlayerController extends ChangeNotifier {
     }
     _bufferedPosition = newBuf;
 
-    _positionStreamController.add(_position);
-    if (_duration > Duration.zero) {
+    if (!_positionStreamController.isClosed) {
+      _positionStreamController.add(_position);
+    }
+    if (_duration > Duration.zero && !_durationStreamController.isClosed) {
       _durationStreamController.add(_duration);
     }
-    _bufferedStreamController.add(_bufferedPosition);
+    if (!_bufferedStreamController.isClosed) {
+      _bufferedStreamController.add(_bufferedPosition);
+    }
 
     if (changed) {
       notifyListeners();
@@ -459,28 +530,40 @@ class BananaPlayerController extends ChangeNotifier {
   }
 
   void _handleVideoQualitiesChanged(List<VideoQuality> qualities) {
+    if (_isDisposed) return;
     _videoQualities = List<VideoQuality>.unmodifiable(qualities);
-    _qualitiesStreamController.add(_videoQualities);
+    if (!_qualitiesStreamController.isClosed) {
+      _qualitiesStreamController.add(_videoQualities);
+    }
     notifyListeners();
   }
 
   void _handleSubtitleTracksChanged(List<SubtitleTrack> tracks) {
+    if (_isDisposed) return;
     _subtitleTracks = List<SubtitleTrack>.unmodifiable(tracks);
-    _subtitlesStreamController.add(_subtitleTracks);
+    if (!_subtitlesStreamController.isClosed) {
+      _subtitlesStreamController.add(_subtitleTracks);
+    }
     notifyListeners();
   }
 
   void _handleSubtitleTextChanged(String? text) {
+    if (_isDisposed) return;
     if (_currentSubtitleText != text) {
       _currentSubtitleText = text;
-      _subtitleTextStreamController.add(text);
+      if (!_subtitleTextStreamController.isClosed) {
+        _subtitleTextStreamController.add(text);
+      }
       notifyListeners();
     }
   }
 
   void _handleError(String errorCode, String errorMessage) {
+    if (_isDisposed) return;
     _errorMessage = '$errorCode: $errorMessage';
-    _errorStreamController.add(_errorMessage!);
+    if (!_errorStreamController.isClosed) {
+      _errorStreamController.add(_errorMessage!);
+    }
     notifyListeners();
   }
 

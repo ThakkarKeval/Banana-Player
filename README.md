@@ -32,6 +32,10 @@ A high-performance, cross-platform video player plugin for Flutter. Powered nati
 | **Android** | API 24 (Android 7.0+) | AndroidX Media3 / ExoPlayer 1.5.1 |
 | **iOS** | iOS 15.0+ | AVPlayer / AVFoundation |
 
+> **Platform Quality & Subtitle Behavior Notes:**
+> * On Android, video qualities and subtitle tracks are selected deterministically via Media3 track selection overrides (`TrackSelectionOverride`).
+> * On iOS, adaptive bitrate quality selection operates via `AVPlayerItem.preferredPeakBitRate` and `preferredMaximumResolution` for HLS variant streams, while subtitles leverage native `AVMediaSelectionGroup` selections. Setting quality to `'auto'` clears bitrate and resolution caps on both platforms.
+
 ---
 
 ## Installation
@@ -40,7 +44,7 @@ Add `banana_player` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  banana_player: ^0.0.1
+  banana_player: ^0.0.5
 ```
 
 Or run:
@@ -61,11 +65,20 @@ android {
 }
 ```
 
-Internet permission is automatically included by the plugin's manifest. If loading insecure `http://` streams, enable cleartext traffic in your application manifest:
+Internet permission is automatically included by the plugin's manifest. If loading specific insecure `http://` streams during development or for specific local servers, prefer configuring a targeted `network_security_config.xml` with specific domain exceptions rather than globally allowing cleartext traffic:
+
+```xml
+<!-- In res/xml/network_security_config.xml -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">example.com</domain>
+    </domain-config>
+</network-security-config>
+```
 
 ```xml
 <application
-    android:usesCleartextTraffic="true"
+    android:networkSecurityConfig="@xml/network_security_config"
     ...>
 </application>
 ```
@@ -78,13 +91,21 @@ Ensure your iOS deployment target is 15.0 or higher in `ios/Podfile`:
 platform :ios, '15.0'
 ```
 
-If loading insecure `http://` streams, configure App Transport Security in `ios/Runner/Info.plist`:
+If loading specific insecure `http://` streams, configure targeted App Transport Security domain exceptions in `ios/Runner/Info.plist` instead of globally permitting arbitrary loads:
 
 ```xml
 <key>NSAppTransportSecurity</key>
 <dict>
-    <key>NSAllowsArbitraryLoads</key>
-    <true/>
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>example.com</key>
+        <dict>
+            <key>NSIncludesSubdomains</key>
+            <true/>
+            <key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+        </dict>
+    </dict>
 </dict>
 ```
 
@@ -93,8 +114,8 @@ If loading insecure `http://` streams, configure App Transport Security in `ios/
 ## Quick Start
 
 ```dart
-import 'package:flutter/material.dart';
 import 'package:banana_player/banana_player.dart';
+import 'package:material_ui/material_ui.dart';
 
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
@@ -127,6 +148,7 @@ class _VideoScreenState extends State<VideoScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
+        // Wrap with AspectRatio matching your video content (e.g. 16:9, 4:3, or 9:16)
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Stack(
@@ -189,11 +211,20 @@ await _controller.initialize(url: 'assets/videos/intro.mp4');
 final List<VideoQuality> qualities = _controller.videoQualities;
 
 for (final quality in qualities) {
-  print('${quality.label} - ${quality.width}x${quality.height} @ ${quality.bitrate} bps');
+  print('${quality.label} (ID: ${quality.id}) - ${quality.width}x${quality.height} @ ${quality.bitrate} bps');
 }
 
-// Switch to a specific resolution (e.g. '1080p') or back to auto ABR
-_controller.setVideoQuality('auto');
+// Switch to a specific resolution by its track ID (e.g. qualities.first.id or '0_0')
+if (qualities.isNotEmpty) {
+  final targetQuality = qualities.firstWhere(
+    (q) => q.id != 'auto',
+    orElse: () => qualities.first,
+  );
+  await _controller.setVideoQuality(targetQuality.id);
+}
+
+// Or restore automatic adaptive bitrate streaming
+await _controller.setVideoQuality('auto');
 ```
 
 ### 3. Closed Captions & Subtitles
@@ -232,7 +263,7 @@ BananaPlayerView(
     fontWeight: FontWeight.bold,
   ),
   subtitleDecoration: BoxDecoration(
-    color: Colors.black.withOpacity(0.75),
+    color: const Color(0xBF000000),
     borderRadius: BorderRadius.circular(6),
   ),
 )

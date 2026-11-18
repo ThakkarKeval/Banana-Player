@@ -1,6 +1,9 @@
 # Build output and caches
 /build/
 .dart_tool/
+example/build/
+example/android/build/
+example/ios/.symlinks/
 
 # Exclude platforms not registered in pubspec.yaml
 /windows/
@@ -18,4 +21,7 @@
 # Test coverage & generated docs
 /coverage/
 /doc/
+
+# Internal documentation and issue reports
+FIXED_ISSUES.md
 
