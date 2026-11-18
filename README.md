@@ -44,7 +44,7 @@ Add `banana_player` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  banana_player: ^0.0.5
+  banana_player: ^0.0.6
 ```
 
 Or run:
@@ -52,6 +52,8 @@ Or run:
 ```bash
 flutter pub add banana_player
 ```
+
+> **Design System Note**: `banana_player` is style-neutral and depends only on core Flutter widgets (`package:flutter/widgets.dart`). If your application UI uses Material widgets (`Scaffold`, `CircularProgressIndicator`, etc.) on Flutter 3.50+, remember to add `material_ui: ^1.0.0` (`flutter pub add material_ui`) or continue using `package:flutter/material.dart` on earlier Flutter versions.
 
 ### Android Configuration
 
@@ -115,7 +117,10 @@ If loading specific insecure `http://` streams, configure targeted App Transport
 
 ```dart
 import 'package:banana_player/banana_player.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
+// Note: On Flutter 3.50+, if your app uses the standalone Material package,
+// add `material_ui: ^1.0.0` to your pubspec.yaml and import:
+// import 'package:material_ui/material_ui.dart';
 
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
@@ -240,7 +245,9 @@ for (final track in tracks) {
 }
 
 // Select a specific subtitle track by id or language
-await _controller.setSubtitleTrack(tracks.first.id);
+if (tracks.isNotEmpty) {
+  await _controller.setSubtitleTrack(tracks.first.id);
+}
 
 // Disable subtitles
 await _controller.disableSubtitles();

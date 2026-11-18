@@ -1,12 +1,21 @@
+## 0.0.6
+
+* Upgraded Pigeon bridge code generator to `^30.0.4` and regenerated Dart, Kotlin, and Swift communication bindings.
+* Upgraded Android build toolchain to Android Gradle Plugin `9.3.1`, Gradle `9.9.1`, and Kotlin `2.4.21`.
+* Updated dependencies to latest stable versions (`meta: ^1.19.0`, `cupertino_icons: ^2.0.0`).
+* Verified native Android compilation and test passes.
+
 ## 0.0.5
 
-* Decoupled `BananaSeekBar` from `package:flutter/material.dart` and adopted `package:material_ui/material_ui.dart` for Flutter 3.50+ compliance (50/50 pub.dev static analysis score).
+* Decoupled `BananaSeekBar` and player views from `package:flutter/material.dart` in favor of core `package:flutter/widgets.dart` for Flutter 3.50+ compliance (50/50 pub.dev static analysis score).
 * Hardened `BananaPlayerController` lifecycle against async initialization race conditions using generation counters and immediate orphaned texture cleanup.
 * Prevented stream exceptions, listener notifications, and memory leaks on post-disposal native events.
 * Added boundary clamping and state synchronization to `seekTo` (resetting `ended` state when seeking backwards).
 * Added proper recovery to `idle` state upon native playback errors across Android Media3 and iOS AVPlayer.
 * Fixed iOS `AVPlayerItemVideoOutput` cleanup leak in `removeItemObservers()` and added synthetic `auto` track option for parity with Android.
 * Made Android and iOS native player `dispose()` calls strictly idempotent.
+* Aligned Dart and Flutter SDK environment constraints (`sdk: ^3.13.7` with `flutter: '>=3.47.0'`).
+* Hardened README documentation examples with subtitle track safety guards and clarified consumer design system requirements.
 * Added 5 focused regression tests covering boundary seeks, idempotent disposal, post-disposal initialization guards, and stale event rejection.
 
 ## 0.0.4

@@ -65,7 +65,7 @@ This document records all confirmed bugs, root causes, code-level fixes, and reg
 ### 6. Documentation & Example Hardening
 - **Problem:** Outdated package version (`^0.0.1`), deprecated color calls, and insecure recommendations for global cleartext traffic.
 - **Fix:**
-  - Updated installation instructions to `^0.0.5`.
+  - Updated installation instructions to `^0.0.6`.
   - Replaced blanket `android:usesCleartextTraffic="true"` and `NSAllowsArbitraryLoads` with domain-specific network security configuration recommendations.
   - Added explicit documentation regarding platform differences in track selection (Media3 overrides vs. AVPlayer bitrate caps).
   - Updated Quick Start to use `package:material_ui/material_ui.dart`.
