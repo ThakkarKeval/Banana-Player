@@ -59,6 +59,13 @@ const List<MediaPreset> _kPresets = [
     icon: Icons.speed_rounded,
   ),
   MediaPreset(
+    title: AppStrings.presetCaptionsTitle,
+    subtitle: AppStrings.presetCaptionsSubtitle,
+    tag: AppStrings.presetCaptionsTag,
+    url: AppStrings.presetCaptionsUrl,
+    icon: Icons.subtitles_rounded,
+  ),
+  MediaPreset(
     title: AppStrings.presetMuxTitle,
     subtitle: AppStrings.presetMuxSubtitle,
     tag: AppStrings.presetMuxTag,
@@ -396,6 +403,10 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (_controller.subtitleTracks.isNotEmpty) ...[
+                          _buildSubtitleBadge(),
+                          const SizedBox(width: 8),
+                        ],
                         _buildSpeedBadge(),
                         const SizedBox(width: 8),
                         _buildQualityBadge(),
@@ -408,6 +419,203 @@ class _BananaPlayerHomeState extends State<BananaPlayerHome> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSubtitleBadge() {
+    final isEnabled = _controller.isSubtitlesEnabled;
+    final selectedTrack = _controller.selectedSubtitleTrack;
+    final label = isEnabled
+        ? (selectedTrack?.label ?? AppStrings.subtitlesCc)
+        : AppStrings.subtitlesCc;
+
+    return InkWell(
+      onTap: () => _showSubtitlePicker(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: BananaTheme.cardSurface.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isEnabled
+                ? BananaTheme.brightYellow
+                : Colors.white.withValues(alpha: 0.25),
+          ),
+          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isEnabled
+                  ? Icons.closed_caption_rounded
+                  : Icons.closed_caption_disabled_rounded,
+              color: isEnabled ? BananaTheme.brightYellow : Colors.white70,
+              size: 14,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+                color: isEnabled ? BananaTheme.brightYellow : Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubtitlePicker(BuildContext context) {
+    final tracks = _controller.subtitleTracks;
+    final selected = _controller.selectedSubtitleTrack;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: BananaTheme.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.closed_caption_rounded,
+                      color: BananaTheme.primaryYellow,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      AppStrings.closedCaptions,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (selected != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: BananaTheme.primaryYellow.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          AppStrings.activeSubtitle(selected.label),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: BananaTheme.primaryYellow,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: tracks.map((track) {
+                        final isSelected =
+                            track.id == selected?.id ||
+                            (selected == null &&
+                                track.id.toLowerCase() == 'off');
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 2,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? BananaTheme.primaryYellow
+                                    : Colors.white.withValues(alpha: 0.06),
+                              ),
+                            ),
+                            tileColor: isSelected
+                                ? BananaTheme.primaryYellow.withValues(
+                                    alpha: 0.12,
+                                  )
+                                : BananaTheme.cardSurfaceLight,
+                            leading: Icon(
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: isSelected
+                                  ? BananaTheme.primaryYellow
+                                  : Colors.white38,
+                              size: 20,
+                            ),
+                            title: Text(
+                              track.label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                            subtitle: track.language != null
+                                ? Text(
+                                    track.language!.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white38,
+                                    ),
+                                  )
+                                : null,
+                            onTap: () {
+                              _controller.setSubtitleTrack(track.id);
+                              Navigator.pop(bottomSheetContext);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -81,4 +81,19 @@ abstract final class AppStrings {
   static const String presetMuxTag = 'HLS LIVE';
   static const String presetMuxUrl =
       'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+
+  // Closed Captions / Subtitles Badge & Picker
+  static const String closedCaptions = 'Closed Captions & Subtitles';
+  static const String subtitlesOff = 'Off';
+  static const String subtitlesCc = 'CC';
+  static String subtitleBadge(String label) => 'CC • $label';
+  static String activeSubtitle(String label) => '$label ACTIVE';
+
+  // Subtitles Preset Data
+  static const String presetCaptionsTitle = 'Apple Multi-Subtitles';
+  static const String presetCaptionsSubtitle =
+      'Multi-Language (EN/FR/ES/JA) • HLS';
+  static const String presetCaptionsTag = 'HLS CC';
+  static const String presetCaptionsUrl =
+      'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8';
 }
