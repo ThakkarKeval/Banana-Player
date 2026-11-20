@@ -32,6 +32,8 @@ A high-performance, cross-platform video player plugin for Flutter. Powered nati
 | **Android** | API 24 (Android 7.0+) | AndroidX Media3 / ExoPlayer 1.5.1 |
 | **iOS** | iOS 15.0+ | AVPlayer / AVFoundation |
 
+> For comprehensive details on build targets, JVM targets, Gradle Version Catalogs, and Media3 capabilities, consult the [Compatibility Matrix](COMPATIBILITY.md).
+
 > **Platform Quality & Subtitle Behavior Notes:**
 > * On Android, video qualities and subtitle tracks are selected deterministically via Media3 track selection overrides (`TrackSelectionOverride`).
 > * On iOS, adaptive bitrate quality selection operates via `AVPlayerItem.preferredPeakBitRate` and `preferredMaximumResolution` for HLS variant streams, while subtitles leverage native `AVMediaSelectionGroup` selections. Setting quality to `'auto'` clears bitrate and resolution caps on both platforms.

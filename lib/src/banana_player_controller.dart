@@ -584,7 +584,10 @@ class BananaPlayerController extends ChangeNotifier {
     String? subtitleText,
     String? errorMessage,
   }) {
-    if (textureId != null) _textureId = textureId;
+    if (textureId != null) {
+      _textureId = textureId;
+      _activeControllers[textureId] = this;
+    }
     if (playbackState != null) {
       _playbackState = playbackState;
       _stateStreamController.add(playbackState);

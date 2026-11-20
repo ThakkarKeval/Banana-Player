@@ -1,8 +1,19 @@
 group = "com.cavernlabs.banana.player.banana_player"
 version = "1.0-SNAPSHOT"
 
+object Versions {
+    const val KOTLIN = "2.4.21"
+    const val AGP = "9.3.1"
+    const val COMPILE_SDK = 36
+    const val MIN_SDK = 24
+    const val MEDIA3 = "1.5.1"
+    const val COROUTINES = "1.8.1"
+    const val MOCKITO = "5.11.0"
+    val JAVA = JavaVersion.VERSION_17
+    val JVM_TARGET = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+}
+
 buildscript {
-    val kotlinVersion = "2.4.21"
     repositories {
         google()
         mavenCentral()
@@ -10,7 +21,7 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:9.3.1")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
     }
 }
 
@@ -28,11 +39,11 @@ plugins {
 android {
     namespace = "com.cavernlabs.banana.player.banana_player"
 
-    compileSdk = 36
+    compileSdk = Versions.COMPILE_SDK
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = Versions.JAVA
+        targetCompatibility = Versions.JAVA
     }
 
     sourceSets {
@@ -45,7 +56,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 24
+        minSdk = Versions.MIN_SDK
     }
 
     testOptions {
@@ -67,16 +78,16 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        jvmTarget = Versions.JVM_TARGET
     }
 }
 
 dependencies {
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.5.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("androidx.media3:media3-exoplayer:${Versions.MEDIA3}")
+    implementation("androidx.media3:media3-exoplayer-hls:${Versions.MEDIA3}")
+    implementation("androidx.media3:media3-exoplayer-dash:${Versions.MEDIA3}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.COROUTINES}")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.COROUTINES}")
+    testImplementation("org.mockito:mockito-core:${Versions.MOCKITO}")
 }
