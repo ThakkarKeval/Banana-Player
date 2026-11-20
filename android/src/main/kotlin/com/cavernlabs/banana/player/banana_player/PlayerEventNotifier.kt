@@ -2,6 +2,7 @@ package com.cavernlabs.banana.player.banana_player
 
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -15,6 +16,7 @@ interface PlayerEventNotifier {
     fun notifySubtitleTracks(tracks: List<SubtitleTrack>)
     fun notifySubtitleText(text: String?)
     fun notifyError(errorCode: String, errorMessage: String)
+    fun dispose() = Unit
 }
 
 /**
@@ -97,5 +99,9 @@ class DefaultPlayerEventNotifier(
         safeLaunch("Error") {
             flutterApi.onError(textureId, errorCode, errorMessage)
         }
+    }
+
+    override fun dispose() {
+        scope.cancel()
     }
 }

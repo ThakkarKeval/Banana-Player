@@ -28,7 +28,28 @@ public class BananaPlayerPlugin: NSObject, FlutterPlugin, BananaPlayerHostApi {
 
   // MARK: - BananaPlayerHostApi
 
+  private func playerOrThrow(_ textureId: Int64) throws -> BananaPlayer {
+    guard let player = players[textureId] else {
+      throw PigeonError(
+        code: "player_not_found",
+        message: "No active player found with textureId \(textureId)",
+        details: nil
+      )
+    }
+    return player
+  }
+
+  private func invalidArgument(_ message: String) -> PigeonError {
+    PigeonError(code: "invalid_argument", message: message, details: nil)
+  }
+
   func create(config: PlayerConfig) throws -> Int64 {
+    guard !config.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      throw invalidArgument("Media URL cannot be blank")
+    }
+    guard config.volume.isFinite && (0.0...1.0).contains(config.volume) else {
+      throw invalidArgument("Volume must be finite and between 0 and 1")
+    }
     let player = BananaPlayer(
       config: config,
       registry: registrar.textures(),
@@ -40,80 +61,73 @@ public class BananaPlayerPlugin: NSObject, FlutterPlugin, BananaPlayerHostApi {
   }
 
   func play(textureId: Int64) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
-    }
-    player.play()
+    try playerOrThrow(textureId).play()
   }
 
   func pause(textureId: Int64) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
-    }
-    player.pause()
+    try playerOrThrow(textureId).pause()
   }
 
   func setSource(textureId: Int64, url: String) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
+    let player = try playerOrThrow(textureId)
+    guard !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      throw invalidArgument("Media URL cannot be blank")
     }
     player.setSource(url: url)
   }
 
   func seekTo(textureId: Int64, positionMs: Int64) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
-    }
-    player.seekTo(positionMs: positionMs)
+    try playerOrThrow(textureId).seekTo(positionMs: positionMs)
   }
 
   func setVolume(textureId: Int64, volume: Double) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
+    let player = try playerOrThrow(textureId)
+    guard volume.isFinite else {
+      throw invalidArgument("Volume must be finite")
     }
     player.setVolume(Float(volume))
   }
 
   func getDuration(textureId: Int64) throws -> Int64 {
-    return players[textureId]?.getDuration() ?? 0
+    try playerOrThrow(textureId).getDuration()
   }
 
   func getPosition(textureId: Int64) throws -> Int64 {
-    return players[textureId]?.getPosition() ?? 0
+    try playerOrThrow(textureId).getPosition()
   }
 
   func getVideoQualities(textureId: Int64) throws -> [VideoQuality] {
-    return players[textureId]?.getVideoQualities() ?? []
+    try playerOrThrow(textureId).getVideoQualities()
   }
 
   func setVideoQuality(textureId: Int64, qualityId: String) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
+    let player = try playerOrThrow(textureId)
+    let availableQualityIds = player.getVideoQualities().map(\.id)
+    guard qualityId == "auto" || availableQualityIds.contains(qualityId) else {
+      throw invalidArgument("Unknown video quality ID: \(qualityId)")
     }
     player.setVideoQuality(qualityId: qualityId)
   }
 
   func setPlaybackSpeed(textureId: Int64, speed: Double) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
+    let player = try playerOrThrow(textureId)
+    guard speed.isFinite && speed > 0 else {
+      throw invalidArgument("Playback speed must be finite and greater than 0")
     }
     player.setPlaybackSpeed(Float(speed))
   }
 
   func getSubtitleTracks(textureId: Int64) throws -> [SubtitleTrack] {
-    return players[textureId]?.getSubtitleTracks() ?? []
+    try playerOrThrow(textureId).getSubtitleTracks()
   }
 
   func setSubtitleTrack(textureId: Int64, trackId: String) throws {
-    guard let player = players[textureId] else {
-      throw PigeonError(code: "NOT_FOUND", message: "Player \(textureId) not found", details: nil)
-    }
-    player.setSubtitleTrack(trackId: trackId)
+    try playerOrThrow(textureId).setSubtitleTrack(trackId: trackId)
   }
 
   func dispose(textureId: Int64) throws {
-    if let player = players.removeValue(forKey: textureId) {
-      player.dispose()
-    }
+    let player = try playerOrThrow(textureId)
+    players.removeValue(forKey: textureId)
+    player.dispose()
   }
 }

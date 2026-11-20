@@ -12,10 +12,12 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   late List<Map<String, Object?>> recordedNativeCalls;
+  bool emitReadyDuringCreate = false;
   int nextTextureId = 100;
 
   setUp(() {
     recordedNativeCalls = [];
+    emitReadyDuringCreate = false;
     nextTextureId = 100;
 
     messenger.setMockMessageHandler(
@@ -31,6 +33,13 @@ void main() {
           'volume': config?.volume,
           'assignedId': assignedId,
         });
+        if (emitReadyDuringCreate) {
+          await messenger.handlePlatformMessage(
+            'dev.flutter.pigeon.banana_player.BananaPlayerFlutterApi.onPlaybackStateChanged',
+            codec.encodeMessage(<Object?>[assignedId, PlaybackState.ready]),
+            (_) {},
+          );
+        }
         return codec.encodeMessage(<Object?>[assignedId]);
       },
     );
@@ -252,6 +261,40 @@ void main() {
   });
 
   group('BananaPlayer Dart-to-Native Host API Integration', () {
+    test(
+      'applies playback speed selected before initialization',
+      () async {
+        final controller = BananaPlayerController();
+        await controller.setPlaybackSpeed(1.5);
+
+        await controller.initialize(url: 'https://example.com/video.mp4');
+
+        final createIndex = recordedNativeCalls.indexWhere(
+          (call) => call['method'] == 'create',
+        );
+        final speedIndex = recordedNativeCalls.indexWhere(
+          (call) => call['method'] == 'setPlaybackSpeed',
+        );
+        expect(controller.playbackSpeed, 1.5);
+        expect(speedIndex, greaterThan(createIndex));
+        expect(recordedNativeCalls[speedIndex]['speed'], 1.5);
+        await controller.dispose();
+      },
+    );
+
+    test(
+      'buffers native events emitted before create returns',
+      () async {
+        emitReadyDuringCreate = true;
+        final controller = BananaPlayerController();
+
+        await controller.initialize(url: 'https://example.com/video.mp4');
+
+        expect(controller.playbackState, PlaybackState.ready);
+        await controller.dispose();
+      },
+    );
+
     test('initializes and dispatches control calls across host channels', () async {
       final controller = BananaPlayerController();
       expect(controller.isInitialized, isFalse);

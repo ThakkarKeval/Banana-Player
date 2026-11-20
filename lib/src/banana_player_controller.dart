@@ -14,6 +14,65 @@ class BananaPlayerController extends ChangeNotifier {
 
   static bool _apiInitialized = false;
   static final Map<int, BananaPlayerController> _activeControllers = {};
+  static final Map<int, List<_PendingNativeEvent>> _pendingNativeEvents = {};
+  static const int _maxPendingEventsPerTexture = 16;
+  static const int _maxPendingTextureIds = 32;
+  static const Duration _pendingEventLifetime = Duration(seconds: 30);
+
+  static void _registerController(
+    int textureId,
+    BananaPlayerController controller,
+  ) {
+    _activeControllers[textureId] = controller;
+    final pending = _pendingNativeEvents.remove(textureId);
+    if (pending != null) {
+      final now = DateTime.now();
+      for (final pendingEvent in pending) {
+        if (now.difference(pendingEvent.createdAt) <= _pendingEventLifetime) {
+          pendingEvent.dispatch(controller);
+        }
+      }
+    }
+  }
+
+  static void _unregisterController(int textureId) {
+    _activeControllers.remove(textureId);
+    _pendingNativeEvents.remove(textureId);
+  }
+
+  static void _routeNativeEvent(
+    int textureId,
+    void Function(BananaPlayerController) event,
+  ) {
+    final controller = _activeControllers[textureId];
+    if (controller != null) {
+      event(controller);
+      return;
+    }
+    if (!_pendingNativeEvents.containsKey(textureId) &&
+        _pendingNativeEvents.length >= _maxPendingTextureIds) {
+      _pendingNativeEvents.remove(_pendingNativeEvents.keys.first);
+    }
+    final pending = _pendingNativeEvents.putIfAbsent(textureId, () => []);
+    final now = DateTime.now();
+    pending.removeWhere(
+      (queued) => now.difference(queued.createdAt) > _pendingEventLifetime,
+    );
+    if (pending.length == _maxPendingEventsPerTexture) {
+      pending.removeAt(0);
+    }
+    pending.add(_PendingNativeEvent(now, event));
+  }
+
+  Future<void> _disposeNativePlayer(int textureId) async {
+    try {
+      await _hostApi.dispose(textureId);
+    } catch (_) {
+      // The engine may already be detached; local teardown must still complete.
+    } finally {
+      _pendingNativeEvents.remove(textureId);
+    }
+  }
 
   static void _ensureFlutterApiInitialized() {
     if (!_apiInitialized) {
@@ -176,17 +235,25 @@ class BananaPlayerController extends ChangeNotifier {
     if (_isDisposed) {
       throw StateError('Cannot initialize a disposed BananaPlayerController');
     }
+    if (url.trim().isEmpty) {
+      throw ArgumentError.value(url, 'url', 'Must not be blank');
+    }
+    if (!volume.isFinite || volume < 0.0 || volume > 1.0) {
+      throw ArgumentError.value(
+        volume,
+        'volume',
+        'Must be finite and between 0 and 1',
+      );
+    }
 
     final generation = ++_initGeneration;
 
     // Safely release previous player instance if re-initializing
     if (_textureId != null) {
       final oldId = _textureId!;
-      _activeControllers.remove(oldId);
+      _unregisterController(oldId);
       _textureId = null;
-      try {
-        await _hostApi.dispose(oldId);
-      } catch (_) {}
+      await _disposeNativePlayer(oldId);
     }
 
     if (_isDisposed || generation != _initGeneration) {
@@ -223,14 +290,27 @@ class BananaPlayerController extends ChangeNotifier {
     }
 
     if (_isDisposed || generation != _initGeneration) {
-      try {
-        await _hostApi.dispose(textureId);
-      } catch (_) {}
+      await _disposeNativePlayer(textureId);
       throw StateError('Player initialization was cancelled or superseded');
     }
 
+    try {
+      var appliedSpeed = double.nan;
+      while (appliedSpeed != _playbackSpeed) {
+        final requestedSpeed = _playbackSpeed;
+        await _hostApi.setPlaybackSpeed(textureId, requestedSpeed);
+        if (_isDisposed || generation != _initGeneration) {
+          throw StateError('Player initialization was cancelled or superseded');
+        }
+        appliedSpeed = requestedSpeed;
+      }
+    } catch (error) {
+      await _disposeNativePlayer(textureId);
+      rethrow;
+    }
+
     _textureId = textureId;
-    _activeControllers[textureId] = this;
+    _registerController(textureId, this);
     notifyListeners();
 
     return textureId;
@@ -272,6 +352,9 @@ class BananaPlayerController extends ChangeNotifier {
 
   /// Changes the media source URL without destroying and recreating the surface or decoder.
   Future<void> setSource(String url) async {
+    if (url.trim().isEmpty) {
+      throw ArgumentError.value(url, 'url', 'Must not be blank');
+    }
     if (_isDisposed) {
       throw StateError(
         'Cannot set source on a disposed BananaPlayerController',
@@ -353,6 +436,9 @@ class BananaPlayerController extends ChangeNotifier {
 
   /// Sets player audio volume between 0.0 (silent) and 1.0 (full volume).
   Future<void> setVolume(double volume) async {
+    if (!volume.isFinite) {
+      throw ArgumentError.value(volume, 'volume', 'Must be finite');
+    }
     if (isInitialized) {
       await _hostApi.setVolume(_textureId!, volume.clamp(0.0, 1.0));
     }
@@ -428,6 +514,16 @@ class BananaPlayerController extends ChangeNotifier {
   /// Sets the playback speed multiplier (e.g. 0.5, 0.75, 1.0, 1.25, 1.5, 2.0).
   /// Speeds are clamped between 0.25x and 4.0x.
   Future<void> setPlaybackSpeed(double speed) async {
+    if (_isDisposed) {
+      throw StateError('Cannot set playback speed after disposal');
+    }
+    if (!speed.isFinite || speed <= 0.0) {
+      throw ArgumentError.value(
+        speed,
+        'speed',
+        'Must be finite and greater than 0',
+      );
+    }
     final clamped = speed.clamp(0.25, 4.0);
     _playbackSpeed = clamped;
     notifyListeners();
@@ -444,11 +540,9 @@ class BananaPlayerController extends ChangeNotifier {
 
     if (_textureId != null) {
       final id = _textureId!;
-      _activeControllers.remove(id);
+      _unregisterController(id);
       _textureId = null;
-      try {
-        await _hostApi.dispose(id);
-      } catch (_) {}
+      await _disposeNativePlayer(id);
     }
 
     if (!_stateStreamController.isClosed) {
@@ -586,7 +680,7 @@ class BananaPlayerController extends ChangeNotifier {
   }) {
     if (textureId != null) {
       _textureId = textureId;
-      _activeControllers[textureId] = this;
+      _registerController(textureId, this);
     }
     if (playbackState != null) {
       _playbackState = playbackState;
@@ -624,11 +718,20 @@ class BananaPlayerController extends ChangeNotifier {
   }
 }
 
+class _PendingNativeEvent {
+  const _PendingNativeEvent(this.createdAt, this.dispatch);
+
+  final DateTime createdAt;
+  final void Function(BananaPlayerController) dispatch;
+}
+
 class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
   @override
   void onPlaybackStateChanged(int textureId, PlaybackState state) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handlePlaybackStateChanged(state);
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handlePlaybackStateChanged(state),
+    );
   }
 
   @override
@@ -638,33 +741,45 @@ class _GlobalFlutterApiHandler implements BananaPlayerFlutterApi {
     int durationMs,
     int bufferedPositionMs,
   ) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handlePositionChanged(positionMs, durationMs, bufferedPositionMs);
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handlePositionChanged(
+        positionMs,
+        durationMs,
+        bufferedPositionMs,
+      ),
+    );
   }
 
   @override
   void onVideoQualitiesChanged(int textureId, List<VideoQuality> qualities) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handleVideoQualitiesChanged(qualities);
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handleVideoQualitiesChanged(qualities),
+    );
   }
 
   @override
   void onSubtitleTracksChanged(int textureId, List<SubtitleTrack> tracks) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handleSubtitleTracksChanged(tracks);
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handleSubtitleTracksChanged(tracks),
+    );
   }
 
   @override
   void onSubtitleTextChanged(int textureId, String? text) {
-    BananaPlayerController._activeControllers[textureId]
-        ?._handleSubtitleTextChanged(text);
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handleSubtitleTextChanged(text),
+    );
   }
 
   @override
   void onError(int textureId, String errorCode, String errorMessage) {
-    BananaPlayerController._activeControllers[textureId]?._handleError(
-      errorCode,
-      errorMessage,
+    BananaPlayerController._routeNativeEvent(
+      textureId,
+      (controller) => controller._handleError(errorCode, errorMessage),
     );
   }
 }

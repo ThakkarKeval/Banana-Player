@@ -198,6 +198,21 @@ internal class BananaPlayerPluginTest {
     }
 
     @Test
+    fun setVideoQualityRejectsUnknownQualityIds() {
+        val (plugin, fakePlayer) = setupPluginWithBinding()
+        val textureId = plugin.create(
+            PlayerConfig(url = "https://example.com/video.mp4", autoPlay = false, volume = 1.0)
+        )
+
+        val error = assertFailsWith<FlutterError> {
+            plugin.setVideoQuality(textureId, "missing-quality")
+        }
+
+        assertEquals("invalid_argument", error.code)
+        assertEquals(null, fakePlayer.selectedVideoQuality)
+    }
+
+    @Test
     fun setSourceValidatesUrlAndForwardsToPlayer() {
         val (plugin, fakePlayer) = setupPluginWithBinding()
         val textureId = plugin.create(
@@ -249,6 +264,56 @@ internal class BananaPlayerPluginTest {
             plugin.play(textureId)
         }
         assertEquals("player_not_found", error.code)
+    }
+
+    @Test
+    fun createReleasesTextureWhenPlayerFactoryFails() {
+        val plugin = BananaPlayerPlugin(
+            playerFactory = { _, _, _, _, _ -> error("factory failure") }
+        )
+        val binding = mock(FlutterPlugin.FlutterPluginBinding::class.java)
+        val messenger = mock(BinaryMessenger::class.java)
+        val registry = mock(TextureRegistry::class.java)
+        val textureEntry = mock(TextureRegistry.SurfaceTextureEntry::class.java)
+        `when`(binding.binaryMessenger).thenReturn(messenger)
+        `when`(binding.textureRegistry).thenReturn(registry)
+        `when`(registry.createSurfaceTexture()).thenReturn(textureEntry)
+        `when`(textureEntry.id()).thenReturn(101L)
+        plugin.onAttachedToEngine(binding)
+
+        assertFailsWith<IllegalStateException> {
+            plugin.create(PlayerConfig(url = "https://example.com/video.mp4", autoPlay = false, volume = 1.0))
+        }
+        org.mockito.Mockito.verify(textureEntry).release()
+    }
+
+    @Test
+    fun createRejectsNonFiniteOrOutOfRangeInitialVolume() {
+        val (plugin, _) = setupPluginWithBinding()
+        val error = assertFailsWith<FlutterError> {
+            plugin.create(PlayerConfig(url = "https://example.com/video.mp4", autoPlay = false, volume = Double.POSITIVE_INFINITY))
+        }
+        assertEquals("invalid_argument", error.code)
+
+        val outOfRangeError = assertFailsWith<FlutterError> {
+            plugin.create(PlayerConfig(url = "https://example.com/video.mp4", autoPlay = false, volume = 1.1))
+        }
+        assertEquals("invalid_argument", outOfRangeError.code)
+    }
+
+    @Test
+    fun setVolumeAndPlaybackSpeedRejectNonFiniteValues() {
+        val (plugin, _) = setupPluginWithBinding()
+        val textureId = plugin.create(
+            PlayerConfig(url = "https://example.com/video.mp4", autoPlay = false, volume = 1.0)
+        )
+
+        assertEquals("invalid_argument", assertFailsWith<FlutterError> {
+            plugin.setVolume(textureId, Double.POSITIVE_INFINITY)
+        }.code)
+        assertEquals("invalid_argument", assertFailsWith<FlutterError> {
+            plugin.setPlaybackSpeed(textureId, Double.POSITIVE_INFINITY)
+        }.code)
     }
 
     @Test

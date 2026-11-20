@@ -204,7 +204,7 @@ class BananaPlayer internal constructor(
     init {
         exoPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         surface?.let { exoPlayer.setVideoSurface(it) }
-        exoPlayer.volume = config.volume.toFloat()
+        exoPlayer.volume = config.volume.toFloat().coerceIn(0f, 1f)
         exoPlayer.addListener(playerListener)
 
         val mediaItem = MediaItem.fromUri(uriResolver.resolve(config.url))
@@ -274,6 +274,7 @@ class BananaPlayer internal constructor(
         isDisposed = true
         stopProgressUpdates()
         scope.cancel()
+        eventNotifier.dispose()
         exoPlayer.removeListener(playerListener)
         exoPlayer.release()
         surface?.release()

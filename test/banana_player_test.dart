@@ -61,6 +61,35 @@ void main() {
       expect(controller.playbackSpeed, 1.75);
     });
 
+    test(
+      'rejects non-finite controls and invalid initialization inputs',
+      () async {
+        final controller = BananaPlayerController();
+
+        await expectLater(
+          controller.setPlaybackSpeed(double.nan),
+          throwsArgumentError,
+        );
+        await expectLater(
+          controller.setVolume(double.infinity),
+          throwsArgumentError,
+        );
+        await expectLater(
+          controller.initialize(url: '  '),
+          throwsArgumentError,
+        );
+        await expectLater(
+          controller.initialize(
+            url: 'https://example.com/video.mp4',
+            volume: double.infinity,
+          ),
+          throwsArgumentError,
+        );
+
+        await controller.dispose();
+      },
+    );
+
     test('identifies selected video quality', () {
       final controller = BananaPlayerController();
       final q1 = VideoQuality(
@@ -727,6 +756,7 @@ void main() {
         () => controller.setSource('https://example.com/video.mp4'),
         throwsStateError,
       );
+      await expectLater(controller.setPlaybackSpeed(1.5), throwsStateError);
     });
 
     test(

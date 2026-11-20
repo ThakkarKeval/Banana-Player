@@ -16,7 +16,7 @@ A high-performance, cross-platform video player plugin for Flutter. Powered nati
   * **iOS**: Native AVPlayer with HLS stream support.
 * 💬 **Closed Captions & Subtitles**: Query multi-language embedded subtitle tracks, select tracks or disable (`'off'`), and render crisp reactive subtitle overlays natively in Flutter with custom typography and decorations.
 * 🎚️ **Adaptive Bitrate & Quality Selection**: Read video track resolutions, bitrates, and frame rates on the fly; switch tracks manually or let ABR adapt automatically.
-* ⏩ **Variable Playback Speed**: Smooth rate switching from `0.25x` to `2.0x`.
+* ⏩ **Variable Playback Speed**: Smooth rate switching from `0.25x` to `4.0x`.
 * 🎯 **BananaSeekBar Widget**:
   * Dual-track progress bar (active playback + buffered range).
   * Scrubbing preview tooltip (`scrubTooltipBuilder`).
@@ -331,7 +331,7 @@ BananaSeekBar(
 | `setSourceAsset(String assetPath, {String? package})` | Changes the media source to a bundled Flutter asset. |
 | `play()` / `pause()` | Controls playback state. |
 | `seekTo(Duration position)` | Seeks native player to target duration. |
-| `setPlaybackSpeed(double speed)` | Sets playback speed (e.g., 0.5, 1.0, 1.5, 2.0). |
+| `setPlaybackSpeed(double speed)` | Sets playback speed (clamped between 0.25x and 4.0x). |
 | `setVideoQuality(String qualityId)` | Switches video stream quality track. |
 | `getSubtitleTracks()` | Fetches available closed captions / subtitle tracks. |
 | `setSubtitleTrack(String trackId)` | Selects a subtitle track by ID, or `'off'` to disable. |

@@ -5,14 +5,25 @@
   * `PlayerTrackManager`: Encapsulates video quality track parsing, ABR overrides, and closed captions/subtitle selection.
   * `PlayerEventNotifier`: Dispatches structured, throttled playback and position events to Flutter with diagnostic logging.
   * `BananaPlayerInstance`: Contract interface enabling mock/fake injection and decoupling.
-* **Predictable Error Handling**: Added typed `FlutterError` exceptions (`player_not_found`, `invalid_argument`, `plugin_not_attached`) across host API endpoints instead of silently returning default values.
-* **Thread Safety & Lifecycle**: Secured player session storage using `ConcurrentHashMap` with atomic teardown upon engine detachment.
+* **Event Synchronization & Lifecycle Robustness**:
+  * Buffered native events emitted during player creation until the Dart controller is registered, preventing dropped initial ready or error events.
+  * Applied custom playback speed configured prior to initialization immediately upon player creation.
+  * Cancelled coroutine scopes on `PlayerEventNotifier` and player disposal to prevent post-disposal background emissions.
+  * Guaranteed texture surface release if player creation fails during factory instantiation.
+* **Predictable Error Handling & Cross-Platform Alignment**:
+  * Aligned iOS and Android validation, throwing typed platform exceptions (`player_not_found`, `invalid_argument`, `plugin_not_attached`) across host API endpoints instead of silently returning default fallback values.
+  * Added strict validation rejecting non-finite control inputs (NaN, infinity), blank media URLs, and out-of-range volume values across Dart, Kotlin, and Swift.
+  * Validated video quality IDs and guarded against invalid quality indices on both iOS and Android.
+* **Thread Safety & Engine Teardown**:
+  * Secured player session storage with `ConcurrentHashMap` and serialized platform channel calls with engine teardown via lifecycle locks.
+  * Ensured safe cleanup and error isolation across all active players upon Flutter engine detachment.
 * **Centralized Dependency Management**:
   * Added Gradle Version Catalog (`android/gradle/libs.versions.toml`) pinning AndroidX Media3 (`1.5.1`), Coroutines (`1.8.1`), and Mockito (`5.11.0`).
   * Added [COMPATIBILITY.md](COMPATIBILITY.md) detailing SDK targets, JVM limits, and supported media formats.
-* **Comprehensive Test Suite**:
-  * Added native unit tests for Android plugin, URI resolver, event notifier, and track manager.
-  * Added end-to-end integration tests covering Dart-to-native communication, event streaming, multi-player isolation, and hardware texture rendering.
+* **Test Coverage**:
+  * Added Android unit tests for plugin behavior, URI resolution, event delivery, and track management.
+  * Added Dart unit/widget tests and mocked-channel tests for controller state, event routing, multi-player isolation, and texture widgets.
+  * Added device integration smoke tests for native player creation, playback error delivery, invalid quality IDs, and disposal.
 
 ## 0.0.6
 

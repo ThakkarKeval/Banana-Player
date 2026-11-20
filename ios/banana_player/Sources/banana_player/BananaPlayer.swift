@@ -520,6 +520,7 @@ class BananaPlayer: NSObject, FlutterTexture, AVPlayerItemOutputPullDelegate, AV
     } else if #available(iOS 15.0, *),
       let urlAsset = item.asset as? AVURLAsset,
       let index = Int(qualityId),
+      index >= 0,
       index < urlAsset.variants.count
     {
       let variant = urlAsset.variants[index]
