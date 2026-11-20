@@ -1,3 +1,19 @@
+## 0.0.7
+
+* **Modular Android Player Architecture**: Decomposed `BananaPlayer` into dedicated, single-responsibility collaborators:
+  * `MediaUriResolver`: Handles network, local filesystem (`file://`), and Flutter asset (`asset://`) URI resolution.
+  * `PlayerTrackManager`: Encapsulates video quality track parsing, ABR overrides, and closed captions/subtitle selection.
+  * `PlayerEventNotifier`: Dispatches structured, throttled playback and position events to Flutter with diagnostic logging.
+  * `BananaPlayerInstance`: Contract interface enabling mock/fake injection and decoupling.
+* **Predictable Error Handling**: Added typed `FlutterError` exceptions (`player_not_found`, `invalid_argument`, `plugin_not_attached`) across host API endpoints instead of silently returning default values.
+* **Thread Safety & Lifecycle**: Secured player session storage using `ConcurrentHashMap` with atomic teardown upon engine detachment.
+* **Centralized Dependency Management**:
+  * Added Gradle Version Catalog (`android/gradle/libs.versions.toml`) pinning AndroidX Media3 (`1.5.1`), Coroutines (`1.8.1`), and Mockito (`5.11.0`).
+  * Added [COMPATIBILITY.md](COMPATIBILITY.md) detailing SDK targets, JVM limits, and supported media formats.
+* **Comprehensive Test Suite**:
+  * Added native unit tests for Android plugin, URI resolver, event notifier, and track manager.
+  * Added end-to-end integration tests covering Dart-to-native communication, event streaming, multi-player isolation, and hardware texture rendering.
+
 ## 0.0.6
 
 * Upgraded Pigeon bridge code generator to `^30.0.4` and regenerated Dart, Kotlin, and Swift communication bindings.

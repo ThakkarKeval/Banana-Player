@@ -46,7 +46,7 @@ Add `banana_player` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  banana_player: ^0.0.6
+  banana_player: ^0.0.7
 ```
 
 Or run:
